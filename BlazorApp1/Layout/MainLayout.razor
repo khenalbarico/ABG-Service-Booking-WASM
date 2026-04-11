@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+@inject   NavigationManager   NavigationManager
+
+<div class="layout">
+    @if (!IsAdminPage)
+    {
+        <div class="overlay"></div>
+        <SiteHeader />
+    }
+
+    <main class="content @(IsAdminPage ? "content-admin" : string.Empty)">
+        @Body
+    </main>
+
+    @if (!IsAdminPage)
+    {
+        <SiteFooter />
+    }
+</div>
+
+@code {
+    private bool IsAdminPage => NavigationManager.Uri.Contains("/admin", StringComparison.OrdinalIgnoreCase);
+}

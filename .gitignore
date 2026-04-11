@@ -1,5 +1,49 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
+﻿# Build folders
+bin/
+obj/
 
-/BlazorApp1/bin/Debug/net10.0/BlazorApp1.dll
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+
+# Rider
+.idea/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if you ever add frontend tooling)
+node_modules/
+
+# Blazor WASM specific
+wwwroot/_framework/
+wwwroot/lib/
+
+# Publish output
+publish/
+dist/
+
+# NuGet
+*.nupkg
+.nuget/
+
+# Environment files
+.env
+
+# Coverage / test
+TestResults/
+coverage/
+
+# Temporary files
+*.tmp
+*.temp

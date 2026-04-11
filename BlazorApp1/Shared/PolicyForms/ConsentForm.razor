@@ -1,0 +1,328 @@
+﻿@inject IJSRuntime JS
+
+<div class="consent-card">
+    <div class="consent-scroll" @ref="scrollRef" @onscroll="HandleScroll">
+        <div class="consent-section consent-highlight">
+            <h4>Before You Proceed</h4>
+            <p>Please review all details below and complete the required fields before proceeding to payment.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>1. Consent to Service</h4>
+            <p>I voluntarily agree to receive lash and/or brow services including, but not limited to, eyelash extensions, lash lift, lash tint, brow lamination, brow tint, and related procedures.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>2. Pre-Service Requirements</h4>
+            <div class="check-grid">
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.NoRecentProcedure" />
+                    <span>I have <strong>not</strong> had any lash or brow procedure within the past 2 weeks.</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.WillArriveClean" />
+                    <span>I will arrive with clean lashes or brows with no mascara, makeup, or oils.</span>
+                </label>
+            </div>
+            <p class="section-note">Failure to follow these requirements may result in refusal of service or additional charges.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>3. Health & Sensitivity Checklist</h4>
+            <div class="check-grid">
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.SensitiveEyes" />
+                    <span>Sensitive eyes</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.SensitiveSkin" />
+                    <span>Sensitive skin</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.HistoryOfAllergicReactions" />
+                    <span>History of allergic reactions to lash glue or adhesives</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.ChemicalAllergies" />
+                    <span>Allergies to chemicals, dyes, or cosmetics</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.CurrentEyeIssue" />
+                    <span>Currently experiencing eye irritation, redness, or infection</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.RecentEyeProcedure" />
+                    <span>Recently had eye surgery or procedure</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.WearingContactsToday" />
+                    <span>Wearing contact lenses today</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" checked="@model.NoneOfTheAbove" @onchange="HandleNoneOfTheAboveChanged" />
+                    <span>None of the above</span>
+                </label>
+            </div>
+            <p class="section-warning">I understand that lash glue may cause stinging or burning, especially if I have sensitive eyes or if fumes enter the eyes.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>4. Risks & Reactions</h4>
+            <ul class="consent-list">
+                <li>Redness, irritation, or swelling</li>
+                <li>Burning or stinging sensation from adhesive fumes</li>
+                <li>Allergic reactions</li>
+            </ul>
+            <p>Results may vary depending on my natural lashes, brows, and overall condition.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>5. Aftercare Responsibility</h4>
+            <p>I agree to follow all aftercare instructions provided. I understand that improper care may affect the results and longevity of the service.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>6. Appointment Policy</h4>
+            <ul class="consent-list">
+                <li>15 minutes late = ₱100 late fee</li>
+                <li>20 minutes late = appointment cancelled</li>
+                <li>Late arrival may result in a shorter service depending on time availability</li>
+            </ul>
+        </div>
+
+        <div class="consent-section">
+            <h4>7. Allergy Disclosure & Client Responsibility</h4>
+            <ul class="consent-list">
+                <li>Lash adhesives and products may cause allergic reactions, even if I have not experienced one before</li>
+                <li>If I indicated any sensitivity or allergy, I understand the risks involved</li>
+                <li>The technician has the right to refuse or stop the service if deemed unsafe</li>
+                <li>Results and reactions cannot be guaranteed</li>
+                <li>No refunds will be given for allergic reactions or sensitivities</li>
+                <li>I may request a patch test before service if available</li>
+            </ul>
+
+            <div class="option-grid">
+                <label class="option-card @(model.ProceedAtOwnRisk ? "selected" : "")">
+                    <input type="radio" name="riskChoice" checked="@model.ProceedAtOwnRisk" @onchange="@(() => SelectRiskChoice("proceed"))" />
+                    <span>I choose to proceed with the service at my own risk</span>
+                </label>
+
+                <label class="option-card @(model.RequestPatchTest ? "selected" : "")">
+                    <input type="radio" name="riskChoice" checked="@model.RequestPatchTest" @onchange="@(() => SelectRiskChoice("patch"))" />
+                    <span>I prefer to request a patch test first if available</span>
+                </label>
+            </div>
+
+            <p>I confirm that all information I provided is true. Failure to disclose may increase risks, and I accept full responsibility for any outcome.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>8. Liability Waiver</h4>
+            <p>I release the technician and business from any liability for allergic reactions, sensitivities, reactions to lash glue or products used, outcomes affected by my natural lash or brow condition, and failure to follow aftercare instructions.</p>
+        </div>
+
+        <div class="consent-section">
+            <h4>9. Photo Consent</h4>
+            <div class="option-grid">
+                <label class="option-card @(model.AllowPhotos ? "selected" : "")">
+                    <input type="radio" name="photoChoice" checked="@model.AllowPhotos" @onchange="@(() => SelectPhotoChoice("allow"))" />
+                    <span>I allow photos or videos for marketing</span>
+                </label>
+
+                <label class="option-card @(model.DisallowPhotos ? "selected" : "")">
+                    <input type="radio" name="photoChoice" checked="@model.DisallowPhotos" @onchange="@(() => SelectPhotoChoice("deny"))" />
+                    <span>I do not allow photos or videos</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="consent-section consent-last">
+            <h4>10. Client Confirmation</h4>
+            <div class="check-grid">
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.ReadAndUnderstood" />
+                    <span>I have read and understood this waiver.</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.InformationIsTrue" />
+                    <span>All information I provided is true and accurate.</span>
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" @bind="model.AgreeToProceed" />
+                    <span>I agree to proceed with the service at my own risk.</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="consent-readiness">
+        @if (!hasReachedBottom)
+        {
+            <div class="consent-status">Please scroll to the end of the form to unlock the next step.</div>
+        }
+        else if (countdownActive)
+        {
+            <div class="consent-status">Please wait @countdown seconds before proceeding.</div>
+        }
+        else
+        {
+            <div class="consent-status consent-status-ready">You may now continue once the required fields are completed.</div>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="consent-error">@errorMessage</div>
+    }
+
+    <div class="consent-actions">
+        <button type="button" class="secondary-btn" @onclick="HandleBack">Back</button>
+        <button type="button" class="primary-btn" disabled="@(!CanProceedByReading)" @onclick="HandleProceed">@ProceedLabel</button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnProceed { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    private ElementReference scrollRef;
+    private string?          errorMessage;
+    private ConsentModel     model = new();
+
+    private bool hasReachedBottom;
+    private bool countdownActive;
+    private bool countdownFinished;
+    private int  countdown = 3;
+
+    private bool CanProceedByReading => countdownFinished;
+
+    private string ProceedLabel
+    {
+        get
+        {
+            if (!hasReachedBottom)
+                return "Scroll to Continue";
+
+            if (countdownActive)
+                return $"Proceed in {countdown}s";
+
+            return "Proceed to Payment";
+        }
+    }
+
+    private async Task HandleProceed()
+    {
+        if (!CanProceedByReading)
+            return;
+
+        errorMessage = ValidateForm();
+
+        if (!string.IsNullOrWhiteSpace(errorMessage))
+            return;
+
+        await OnProceed.InvokeAsync();
+    }
+
+    private async Task HandleBack()
+    {
+        await OnBack.InvokeAsync();
+    }
+
+    private void SelectRiskChoice(string value)
+    {
+        model.ProceedAtOwnRisk = value == "proceed";
+        model.RequestPatchTest = value == "patch";
+    }
+
+    private void SelectPhotoChoice(string value)
+    {
+        model.AllowPhotos = value == "allow";
+        model.DisallowPhotos = value == "deny";
+    }
+
+    private void HandleNoneOfTheAboveChanged(ChangeEventArgs e)
+    {
+        var isChecked = e.Value is bool b && b;
+
+        model.NoneOfTheAbove = isChecked;
+
+        if (model.NoneOfTheAbove)
+        {
+            model.SensitiveEyes = false;
+            model.SensitiveSkin = false;
+            model.HistoryOfAllergicReactions = false;
+            model.ChemicalAllergies = false;
+            model.CurrentEyeIssue = false;
+            model.RecentEyeProcedure = false;
+            model.WearingContactsToday = false;
+        }
+    }
+
+    private async Task HandleScroll()
+    {
+        if (hasReachedBottom)
+            return;
+
+        var info = await JS.InvokeAsync<ScrollState>("policyForms.getScrollState", scrollRef);
+
+        if (info.IsAtBottom)
+        {
+            hasReachedBottom = true;
+            countdownActive = true;
+            await InvokeAsync(StateHasChanged);
+
+            for (countdown = 3; countdown > 0; countdown--)
+            {
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1000);
+            }
+
+            countdownActive = false;
+            countdownFinished = true;
+            countdown = 0;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private string? ValidateForm()
+    {
+        if (!model.NoRecentProcedure || !model.WillArriveClean)
+            return "Please confirm the pre-service requirements before proceeding.";
+
+        if (!HasAnyHealthSelection())
+            return "Please complete the health and sensitivity checklist.";
+
+        if (!model.ProceedAtOwnRisk && !model.RequestPatchTest)
+            return "Please choose whether you want to proceed at your own risk or request a patch test first.";
+
+        if (!model.AllowPhotos && !model.DisallowPhotos)
+            return "Please choose your photo consent preference.";
+
+        if (!model.ReadAndUnderstood || !model.InformationIsTrue || !model.AgreeToProceed)
+            return "Please complete all client confirmation items before proceeding.";
+
+        return null;
+    }
+
+    private bool HasAnyHealthSelection()
+    {
+        return model.SensitiveEyes ||
+               model.SensitiveSkin ||
+               model.HistoryOfAllergicReactions ||
+               model.ChemicalAllergies ||
+               model.CurrentEyeIssue ||
+               model.RecentEyeProcedure ||
+               model.WearingContactsToday ||
+               model.NoneOfTheAbove;
+    }
+}

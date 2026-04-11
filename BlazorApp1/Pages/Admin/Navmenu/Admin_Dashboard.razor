@@ -1,0 +1,790 @@
+﻿<div class="dashboard-page">
+    <div class="dashboard-header">
+        <div class="dashboard-header-content">
+            <div class="dashboard-badge">Admin Panel</div>
+            <h1>Client Requests Dashboard</h1>
+            <p>Manage request payments and service progress separately for each booked service.</p>
+        </div>
+
+        <div class="dashboard-header-actions">
+            <div class="header-stat">
+                <span>Total Requests</span>
+                <strong>@_requests.Count</strong>
+            </div>
+            <div class="header-stat">
+                <span>Total Revenue</span>
+                <strong>₱@_totalRevenue.ToString("N2")</strong>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <div class="alert error">@_errorMessage</div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_successMessage))
+    {
+        <div class="alert success">@_successMessage</div>
+    }
+
+    @if (IsLoading)
+    {
+        <div class="loading-panel">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading booking requests...</div>
+        </div>
+    }
+    else
+    {
+        <div class="stats-grid compact">
+            <div class="stat-card primary">
+                <div class="stat-top">
+                    <span class="stat-label">Requests</span>
+                </div>
+                <div class="stat-value">@_requests.Count</div>
+                <div class="stat-foot">Total client bookings</div>
+            </div>
+
+            <div class="stat-card pending">
+                <div class="stat-top">
+                    <span class="stat-label">Pending Payment</span>
+                </div>
+                <div class="stat-value">@_pendingRequestCount</div>
+                <div class="stat-foot">Requests not yet paid</div>
+            </div>
+
+            <div class="stat-card paid">
+                <div class="stat-top">
+                    <span class="stat-label">Paid Requests</span>
+                </div>
+                <div class="stat-value">@_paidRequestCount</div>
+                <div class="stat-foot">Requests already paid</div>
+            </div>
+
+            <div class="stat-card service-pending">
+                <div class="stat-top">
+                    <span class="stat-label">Pending Services</span>
+                </div>
+                <div class="stat-value">@_pendingServiceCount</div>
+                <div class="stat-foot">Services waiting to start</div>
+            </div>
+
+            <div class="stat-card serving">
+                <div class="stat-top">
+                    <span class="stat-label">Serving</span>
+                </div>
+                <div class="stat-value">@_servingServiceCount</div>
+                <div class="stat-foot">Services in progress</div>
+            </div>
+
+            <div class="stat-card served">
+                <div class="stat-top">
+                    <span class="stat-label">Completed</span>
+                </div>
+                <div class="stat-value">@_completedServiceCount</div>
+                <div class="stat-foot">Finished services</div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="table-title-wrap">
+                    <h2>Booked Services</h2>
+                    <span>@FilteredServiceRows.Count() record(s) found</span>
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="status-filter-tabs">
+                        <button type="button" class="filter-tab @(GetServiceStatusFilterClass("all"))" @onclick='() => SetServiceStatusFilter("all")'>All</button>
+                        <button type="button" class="filter-tab @(GetServiceStatusFilterClass("pending"))" @onclick='() => SetServiceStatusFilter("pending")'>Pending</button>
+                        <button type="button" class="filter-tab @(GetServiceStatusFilterClass("serving"))" @onclick='() => SetServiceStatusFilter("serving")'>Serving</button>
+                        <button type="button" class="filter-tab @(GetServiceStatusFilterClass("completed"))" @onclick='() => SetServiceStatusFilter("completed")'>Completed</button>
+                    </div>
+
+                    <input class="search-box"
+                           placeholder="Search booking ID, email, name, contact, service..."
+                           @bind="_searchTerm"
+                           @bind:event="oninput" />
+
+                    <button class="clear-btn" @onclick="ClearSearch" disabled="@string.IsNullOrWhiteSpace(_searchTerm)">Clear</button>
+                    <button class="refresh-btn" @onclick="RefreshAsync" disabled="@_isSaving">Refresh</button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="analytics-table service-table">
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Date</th>
+                            <th>Client</th>
+                            <th>Payment</th>
+                            <th>Service</th>
+                            <th>Branch</th>
+                            <th>Price</th>
+                            <th>Service Status</th>
+                            <th>Update Service</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredServiceRows.Any())
+                        {
+                            @foreach (var row in FilteredServiceRows)
+                            {
+                                <tr @key="GetServiceRowKey(row.Request, row.Service)" class="@GetSelectedRowClass(row.Request)">
+                                    <td class="booking-id">@row.Request.ClientInformation.ClientBookingId</td>
+                                    <td>
+                                        <div class="table-main">@FormatDate(row.Request.ClientInformation.BookingDate)</div>
+                                        <div class="table-sub">@FormatDay(row.Request.ClientInformation.BookingDate)</div>
+                                    </td>
+                                    <td>
+                                        <div class="table-main">@GetFullName(row.Request.ClientInformation.FirstName, row.Request.ClientInformation.LastName)</div>
+                                        <div class="table-sub">@ValueOrDash(row.Request.ClientInformation.ContactNumber)</div>
+                                    </td>
+                                    <td>
+                                        <span class="status-pill @GetRequestStatusClass(row.Request.Status)">@row.Request.Status</span>
+                                    </td>
+                                    <td>
+                                        <div class="table-main">@row.Service.ServiceName</div>
+                                        <div class="table-sub">@ValueOrDash(row.Service.ServiceDesign)</div>
+                                    </td>
+                                    <td>@row.Service.Branch</td>
+                                    <td class="total-cost">₱@row.Service.ServiceCost.ToString("N2")</td>
+                                    <td>
+                                        <span class="status-pill @GetServiceStatusClass(row.Service.Status)">@row.Service.Status</span>
+                                    </td>
+                                    <td>
+                                        <div class="status-editor">
+                                            <select @key="GetServiceRowKey(row.Request, row.Service)"
+                                                    class="status-select"
+                                                    value="@row.Service.Status.ToString()"
+                                                    @onchange="async e => await ChangeServiceStatusAsync(row.Request, row.Service, e.Value?.ToString())"
+                                                    disabled="@(_isSaving || row.Request.Status != ClientStatus.Paid)">
+                                                @foreach (var status in Enum.GetValues<ClientServiceStatus>())
+                                                {
+                                                    <option value="@status.ToString()">@status</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="view-btn" @onclick="() => SelectRequest(row.Request)">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="10" class="empty-state">
+                                    <div class="empty-state-wrap">
+                                        <div class="empty-state-title">No booked services found</div>
+                                        <div class="empty-state-text">Try adjusting your search keyword or selected service status filter.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="status-sections two-col">
+            <div class="status-section-card">
+                <div class="status-section-head">
+                    <div>
+                        <h3>Request Payments</h3>
+                        <p>Manage payment state per client request</p>
+                    </div>
+                </div>
+
+                <div class="mini-list">
+                    @foreach (var request in _requests.Take(8))
+                    {
+                        <div @key="request.ClientInformation.ClientBookingId" class="mini-item">
+                            <div class="mini-main">
+                                <strong>@GetFullName(request.ClientInformation.FirstName, request.ClientInformation.LastName)</strong>
+                                <span>@request.ClientInformation.ClientBookingId</span>
+                            </div>
+                            <div class="mini-actions">
+                                <span class="status-pill @GetRequestStatusClass(request.Status)">@request.Status</span>
+                                <button class="mini-action paid-btn"
+                                        @onclick="() => ToggleRequestPaymentAsync(request)"
+                                        disabled="@_isSaving">
+                                    @(request.Status == ClientStatus.Paid ? "Set Pending" : "Set Paid")
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="status-section-card">
+                <div class="status-section-head">
+                    <div>
+                        <h3>Service Summary</h3>
+                        <p>Progress across all booked services</p>
+                    </div>
+                </div>
+
+                <div class="summary-stack">
+                    <div class="summary-row">
+                        <span>Pending Services</span>
+                        <strong>@_pendingServiceCount</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Serving Services</span>
+                        <strong>@_servingServiceCount</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Completed Services</span>
+                        <strong>@_completedServiceCount</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total Services</span>
+                        <strong>@_totalServices</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (_showDetails && _selectedRequest is not null)
+{
+    <div class="details-overlay" @onclick="CloseDetails">
+        <div class="details-panel" @onclick:stopPropagation="true">
+            <div class="details-header">
+                <div>
+                    <div class="details-badge">Request Details</div>
+                    <h2>@_selectedRequest.ClientInformation.ClientBookingId</h2>
+                    <p>@FormatDate(_selectedRequest.ClientInformation.BookingDate) · @((_selectedRequest.ClientServices?.Count ?? 0)) service(s)</p>
+                </div>
+
+                <button class="close-btn" @onclick="CloseDetails">✕</button>
+            </div>
+
+            <div class="details-status-banner @GetRequestStatusClass(_selectedRequest.Status)">
+                <div class="details-status-left">
+                    <span class="details-status-label">Request Payment Status</span>
+                    <strong>@_selectedRequest.Status</strong>
+                </div>
+
+                <div class="details-status-actions">
+                    @foreach (var status in Enum.GetValues<ClientStatus>())
+                    {
+                        <button type="button"
+                                class="details-status-btn @(status == _selectedRequest.Status ? "active" : "")"
+                                @onclick="() => UpdateRequestPaymentStatusAsync(_selectedRequest, status)"
+                                disabled="@_isSaving">
+                            @status
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="details-content">
+                <div class="details-section">
+                    <h3>Client Information</h3>
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <span class="info-label">Full Name</span>
+                            <strong>@GetFullName(_selectedRequest.ClientInformation.FirstName, _selectedRequest.ClientInformation.LastName)</strong>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-label">Contact Number</span>
+                            <strong>@ValueOrDash(_selectedRequest.ClientInformation.ContactNumber)</strong>
+                        </div>
+                        <div class="info-card wide">
+                            <span class="info-label">Email Address</span>
+                            <strong>@ValueOrDash(_selectedRequest.ClientInformation.Email)</strong>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-label">Booking Date</span>
+                            <strong>@FormatDate(_selectedRequest.ClientInformation.BookingDate)</strong>
+                        </div>
+                        <div class="info-card">
+                            <span class="info-label">Payment Status</span>
+                            <strong>@_selectedRequest.Status</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="details-section">
+                    <div class="section-head">
+                        <h3>Selected Services</h3>
+                        <div class="section-total">Total: ₱@GetSelectedRequestTotal().ToString("N2")</div>
+                    </div>
+
+                    @if (_selectedRequest.ClientServices is not null && _selectedRequest.ClientServices.Any())
+                    {
+                        <div class="services-list">
+                            @foreach (var service in _selectedRequest.ClientServices.Select((value, index) => new { value, index }))
+                            {
+                                <div @key="GetServiceRowKey(_selectedRequest, service.value)" class="service-card">
+                                    <div class="service-card-top">
+                                        <div>
+                                            <div class="service-index">Service @(service.index + 1)</div>
+                                            <div class="service-title">@service.value.ServiceName</div>
+                                        </div>
+                                        <div class="service-price">₱@service.value.ServiceCost.ToString("N2")</div>
+                                    </div>
+
+                                    <div class="service-status-row">
+                                        <span class="status-pill @GetServiceStatusClass(service.value.Status)">@service.value.Status</span>
+
+                                        <select @key="GetServiceRowKey(_selectedRequest, service.value)"
+                                                class="status-select"
+                                                value="@service.value.Status.ToString()"
+                                                @onchange="async e => await ChangeServiceStatusAsync(_selectedRequest, service.value, e.Value?.ToString())"
+                                                disabled="@(_isSaving || _selectedRequest.Status != ClientStatus.Paid)">
+                                            @foreach (var status in Enum.GetValues<ClientServiceStatus>())
+                                            {
+                                                <option value="@status.ToString()">@status</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <div class="service-properties-grid">
+                                        @foreach (var prop in GetServiceProperties(service.value))
+                                        {
+                                            <div class="property-card">
+                                                <span class="property-label">@FormatPropertyName(prop.Key)</span>
+                                                <strong>@prop.Value</strong>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="services-empty">No services found for this request.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public List<ClientRequest> Requests { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public Func<Task>? RefreshRequestsAsync { get; set; }
+    [Parameter] public Func<ClientRequest, Task>? UpdateRequestStatusAsync { get; set; }
+
+    private List<ClientRequest> _requests = [];
+    private bool _isSaving;
+    private string _searchTerm = string.Empty;
+    private string _serviceStatusFilter = "all";
+    private int _totalServices;
+    private int _todayBookings;
+    private decimal _totalRevenue;
+    private int _pendingRequestCount;
+    private int _paidRequestCount;
+    private int _pendingServiceCount;
+    private int _servingServiceCount;
+    private int _completedServiceCount;
+    private bool _showDetails;
+    private ClientRequest? _selectedRequest;
+    private string _successMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    private IEnumerable<ClientServiceRow> FilteredServiceRows =>
+        _requests
+            .SelectMany(request => (request.ClientServices ?? []).Select(service => new ClientServiceRow
+            {
+                Request = request,
+                Service = service
+            }))
+            .Where(MatchesServiceStatusFilter)
+            .Where(MatchesServiceSearch)
+            .OrderByDescending(x => x.Request.ClientInformation.BookingDate)
+            .ThenByDescending(x => x.Request.ClientInformation.ClientBookingId)
+            .ThenBy(x => x.Service.ServiceUid)
+            .ThenBy(x => x.Service.ServiceName);
+
+    protected override void OnParametersSet()
+    {
+        _requests = Requests ?? [];
+        RecalculateDashboard();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (RefreshRequestsAsync is null)
+            return;
+
+        _errorMessage = string.Empty;
+        _successMessage = string.Empty;
+
+        try
+        {
+            await RefreshRequestsAsync.Invoke();
+            RecalculateDashboard();
+            _successMessage = "Booking requests refreshed successfully.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private void RecalculateDashboard()
+    {
+        _todayBookings = _requests.Count(x => x.ClientInformation.BookingDate.Date == DateTime.Today);
+        _totalServices = _requests.Sum(x => x.ClientServices?.Count ?? 0);
+        _totalRevenue = _requests.Sum(x => x.ClientServices?.Sum(s => s.ServiceCost) ?? 0);
+
+        _pendingRequestCount = _requests.Count(x => x.Status == ClientStatus.Pending);
+        _paidRequestCount = _requests.Count(x => x.Status == ClientStatus.Paid);
+
+        var allServices = _requests.SelectMany(x => x.ClientServices ?? []).ToList();
+
+        _pendingServiceCount = allServices.Count(x => x.Status == ClientServiceStatus.Pending);
+        _servingServiceCount = allServices.Count(x => x.Status == ClientServiceStatus.Serving);
+        _completedServiceCount = allServices.Count(x => x.Status == ClientServiceStatus.Completed);
+    }
+
+    private bool MatchesServiceSearch(ClientServiceRow row)
+    {
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+            return true;
+
+        var bookingId = row.Request.ClientInformation.ClientBookingId ?? string.Empty;
+        var email = row.Request.ClientInformation.Email ?? string.Empty;
+        var firstName = row.Request.ClientInformation.FirstName ?? string.Empty;
+        var lastName = row.Request.ClientInformation.LastName ?? string.Empty;
+        var contactNumber = row.Request.ClientInformation.ContactNumber ?? string.Empty;
+        var requestStatus = row.Request.Status.ToString();
+        var serviceStatus = row.Service.Status.ToString();
+        var serviceText = string.Join(" ", GetServiceProperties(row.Service).Select(x => x.Value));
+
+        return bookingId.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || firstName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || lastName.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || contactNumber.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || requestStatus.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || serviceStatus.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || serviceText.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool MatchesServiceStatusFilter(ClientServiceRow row)
+    {
+        return _serviceStatusFilter switch
+        {
+            "pending" => row.Service.Status == ClientServiceStatus.Pending,
+            "serving" => row.Service.Status == ClientServiceStatus.Serving,
+            "completed" => row.Service.Status == ClientServiceStatus.Completed,
+            _ => true
+        };
+    }
+
+    private void SetServiceStatusFilter(string filter)
+    {
+        _serviceStatusFilter = filter;
+    }
+
+    private string GetServiceStatusFilterClass(string filter)
+    {
+        return _serviceStatusFilter == filter ? "active" : string.Empty;
+    }
+
+    private async Task ChangeServiceStatusAsync(ClientRequest request, ClientService service, string? value)
+    {
+        if (!Enum.TryParse<ClientServiceStatus>(value, out var nextStatus))
+            return;
+
+        await UpdateServiceStatusAsync(request, service, nextStatus);
+    }
+
+    private async Task UpdateServiceStatusAsync(ClientRequest request, ClientService service, ClientServiceStatus nextStatus)
+    {
+        if (_isSaving)
+            return;
+
+        if (request.Status != ClientStatus.Paid)
+        {
+            _successMessage = string.Empty;
+            _errorMessage = "Service status cannot be updated while payment is still pending.";
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        if (service.Status == nextStatus)
+            return;
+
+        if (UpdateRequestStatusAsync is null)
+            return;
+
+        _isSaving = true;
+        _successMessage = string.Empty;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            service.Status = nextStatus;
+
+            await UpdateRequestStatusAsync.Invoke(request);
+
+            if (_selectedRequest is not null &&
+                _selectedRequest.ClientInformation.ClientBookingId == request.ClientInformation.ClientBookingId)
+            {
+                _selectedRequest = request;
+            }
+
+            RecalculateDashboard();
+            _successMessage = $"Service {service.ServiceName} for booking {request.ClientInformation.ClientBookingId} updated to {nextStatus}.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task UpdateRequestPaymentStatusAsync(ClientRequest request, ClientStatus nextStatus)
+    {
+        if (_isSaving)
+            return;
+
+        if (request.Status == nextStatus)
+            return;
+
+        if (UpdateRequestStatusAsync is null)
+            return;
+
+        _isSaving = true;
+        _successMessage = string.Empty;
+        _errorMessage = string.Empty;
+
+        try
+        {
+            request.Status = nextStatus;
+
+            if (nextStatus == ClientStatus.Pending)
+            {
+                foreach (var service in request.ClientServices)
+                {
+                    service.Status = ClientServiceStatus.Pending;
+                }
+            }
+
+            await UpdateRequestStatusAsync.Invoke(request);
+
+            if (_selectedRequest is not null &&
+                _selectedRequest.ClientInformation.ClientBookingId == request.ClientInformation.ClientBookingId)
+            {
+                _selectedRequest = request;
+            }
+
+            RecalculateDashboard();
+            _successMessage = $"Booking {request.ClientInformation.ClientBookingId} payment status updated to {nextStatus}.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ToggleRequestPaymentAsync(ClientRequest request)
+    {
+        var nextStatus = request.Status == ClientStatus.Paid
+            ? ClientStatus.Pending
+            : ClientStatus.Paid;
+
+        await UpdateRequestPaymentStatusAsync(request, nextStatus);
+    }
+
+    private void SelectRequest(ClientRequest request)
+    {
+        _selectedRequest = request;
+        _showDetails = true;
+    }
+
+    private void CloseDetails()
+    {
+        _showDetails = false;
+        _selectedRequest = null;
+    }
+
+    private void ClearSearch()
+    {
+        _searchTerm = string.Empty;
+    }
+
+    private string GetSelectedRowClass(ClientRequest request)
+    {
+        if (_selectedRequest?.ClientInformation?.ClientBookingId == request.ClientInformation.ClientBookingId)
+            return "selected-row";
+
+        return string.Empty;
+    }
+
+    private decimal GetSelectedRequestTotal()
+    {
+        return _selectedRequest?.ClientServices?.Sum(x => x.ServiceCost) ?? 0;
+    }
+
+    private static string GetRequestStatusClass(ClientStatus status)
+    {
+        return status switch
+        {
+            ClientStatus.Pending => "pending",
+            ClientStatus.Paid => "paid",
+            _ => string.Empty
+        };
+    }
+
+    private static string GetServiceStatusClass(ClientServiceStatus status)
+    {
+        return status switch
+        {
+            ClientServiceStatus.Pending => "service-pending",
+            ClientServiceStatus.Serving => "serving",
+            ClientServiceStatus.Completed => "served",
+            _ => string.Empty
+        };
+    }
+
+    private static string GetServiceRowKey(ClientRequest request, ClientService service)
+    {
+        return $"{request.ClientInformation.ClientBookingId}::{service.ServiceUid}::{service.ServiceName}::{service.ServiceDate:O}::{service.Branch}";
+    }
+
+    private static string FormatDate(DateTime date)
+    {
+        if (date == default)
+            return "-";
+
+        return date.ToString("MMM dd, yyyy");
+    }
+
+    private static string FormatDay(DateTime date)
+    {
+        if (date == default)
+            return string.Empty;
+
+        return date.ToString("dddd");
+    }
+
+    private static string GetFullName(string? firstName, string? lastName)
+    {
+        var fullName = $"{firstName} {lastName}".Trim();
+        return string.IsNullOrWhiteSpace(fullName) ? "-" : fullName;
+    }
+
+    private static string ValueOrDash(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
+    }
+
+    private static IEnumerable<KeyValuePair<string, string>> GetServiceProperties(ClientService service)
+    {
+        var props = service.GetType()
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.CanRead)
+            .OrderBy(p => GetServicePropertyOrder(p.Name))
+            .ThenBy(p => p.Name);
+
+        foreach (var prop in props)
+        {
+            var rawValue = prop.GetValue(service);
+            yield return new KeyValuePair<string, string>(prop.Name, ConvertPropertyValue(rawValue));
+        }
+    }
+
+    private static int GetServicePropertyOrder(string propertyName)
+    {
+        return propertyName switch
+        {
+            "ServiceUid" => 0,
+            "ServiceName" => 1,
+            "ServiceDesign" => 2,
+            "ServiceDetails" => 3,
+            "ServiceCost" => 4,
+            "Branch" => 5,
+            "ServiceDate" => 6,
+            "Status" => 7,
+            _ => 10
+        };
+    }
+
+    private static string ConvertPropertyValue(object? value)
+    {
+        if (value is null)
+            return "-";
+
+        if (value is DateTime dateTime)
+            return dateTime == default ? "-" : dateTime.ToString("MMM dd, yyyy hh:mm tt");
+
+        if (value is decimal dec)
+            return dec.ToString("N2");
+
+        if (value is double dbl)
+            return dbl.ToString("N2");
+
+        if (value is float flt)
+            return flt.ToString("N2");
+
+        if (value is IEnumerable<string> stringList)
+        {
+            var values = stringList.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            return values.Any() ? string.Join(", ", values) : "-";
+        }
+
+        if (value is System.Collections.IEnumerable enumerable && value is not string)
+        {
+            var list = new List<string>();
+
+            foreach (var item in enumerable)
+            {
+                if (item is not null)
+                    list.Add(item.ToString() ?? string.Empty);
+            }
+
+            var filtered = list.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+            return filtered.Any() ? string.Join(", ", filtered) : "-";
+        }
+
+        var text = value.ToString();
+        return string.IsNullOrWhiteSpace(text) ? "-" : text;
+    }
+
+    private static string FormatPropertyName(string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(propertyName))
+            return propertyName;
+
+        var builder = new StringBuilder();
+        builder.Append(propertyName[0]);
+
+        for (int i = 1; i < propertyName.Length; i++)
+        {
+            var current = propertyName[i];
+            var previous = propertyName[i - 1];
+
+            if (char.IsUpper(current) && !char.IsUpper(previous))
+                builder.Append(' ');
+
+            builder.Append(current);
+        }
+
+        return builder.ToString();
+    }
+}

@@ -1,0 +1,103 @@
+﻿@inject NavigationManager NavigationManager
+
+@if (IsOpen)
+{
+    <div class="auth-backdrop" @onclick="Close">
+        <div class="auth-modal" @onclick:stopPropagation="true">
+            <button class="auth-close" @onclick="Close" aria-label="Close">×</button>
+
+            <div class="auth-badge">Secure Access</div>
+            <h2 class="auth-title">Admin Login</h2>
+            <p class="auth-subtitle">Enter your email and password to continue.</p>
+
+            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+            {
+                <div class="auth-error">@_errorMessage</div>
+            }
+
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLoginAsync">
+                <DataAnnotationsValidator />
+
+                <div class="auth-field">
+                    <label for="email">Email</label>
+                    <InputText id="email" class="auth-input" @bind-Value="loginModel.Email" />
+                    <ValidationMessage For="@(() => loginModel.Email)" />
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Password</label>
+                    <InputText id="password" type="password" class="auth-input" @bind-Value="loginModel.Password" />
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                <button type="submit" class="auth-login-btn" disabled="@_isLoading">
+                    @(_isLoading ? "Signing in..." : "Login")
+                </button>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    bool           IsOpen;
+    bool           _isLoading;
+    string         _errorMessage  = string.Empty;
+    LoginModel     loginModel     = new();
+    AdminAuthState adminAuthState = new();
+
+    [Parameter] public EventCallback OnAuthenticated { get; set; }
+
+    public void Open()
+    {
+        _errorMessage = string.Empty;
+        loginModel    = new();
+        IsOpen        = true;
+        StateHasChanged();
+    }
+
+    public void Close()
+    {
+        if (_isLoading)
+            return;
+
+        IsOpen = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleLoginAsync()
+    {
+        // _isLoading = true;
+        // _errorMessage = string.Empty;
+
+        // try
+        // {
+        //     var credential = await AppAuthentication.LoginAsync(loginModel.Email, loginModel.Password);
+
+        //     if (credential is not null)
+        //     {
+        //         adminAuthState.IsAuthenticated = true;
+        //         adminAuthState.Email = loginModel.Email;
+
+        //         IsOpen = false;
+
+        //         if (OnAuthenticated.HasDelegate)
+        //             await OnAuthenticated.InvokeAsync();
+
+        //         NavigationManager.NavigateTo("/admin", false);
+        //     }
+        //     else
+        //     {
+        //         _errorMessage = "Invalid login credentials.";
+        //     }
+        // }
+        // catch (Exception ex)
+        // {
+        //     _errorMessage = ex.Message;
+        // }
+        // finally
+        // {
+        //     _isLoading = false;
+        //     StateHasChanged();
+        // }
+    }
+}

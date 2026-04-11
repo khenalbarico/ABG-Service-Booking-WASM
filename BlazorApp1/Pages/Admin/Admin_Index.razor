@@ -1,0 +1,265 @@
+﻿@page "/admin"
+@inject AdminAuthState    AdminAuthState
+@inject NavigationManager NavigationManager
+
+<PageTitle>ABG Studios Admin</PageTitle>
+
+@if (AdminAuthState.IsAuthenticated)
+{
+    <div class="admin-shell">
+        <div class="admin-sidebar">
+            <Admin_Navmenu CurrentPage="@_currentPage" CurrentPageChanged="OnPageChanged" />
+        </div>
+
+        <div class="admin-content">
+            @switch (_currentPage)
+            {
+                case "dashboard":
+                    <Admin_Dashboard Requests="@_requests"
+                                     IsLoading="@_isRequestsLoading"
+                                     RefreshRequestsAsync="@LoadRequestsAsync"
+                                     UpdateRequestStatusAsync="@UpdateRequestStatusAsync" />
+                    break;
+                case "services":
+                    <Admin_Services Nails="@_nails"
+                                    Lashes="@_lashes"
+                                    Eyebrows="@_eyebrows"
+                                    Footspa="@_footspa"
+                                    IsLoading="@_isServicesLoading"
+                                    SaveServiceAsync="@SaveServiceAsync"
+                                    DeleteServiceAsync="@DeleteServiceAsync"
+                                    RefreshServicesAsync="@LoadServicesAsync" />
+                    break;
+                default:
+                    <Admin_Dashboard Requests="@_requests"
+                                     IsLoading="@_isRequestsLoading"
+                                     RefreshRequestsAsync="@LoadRequestsAsync"
+                                     UpdateRequestStatusAsync="@UpdateRequestStatusAsync" />
+                    break;
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="admin-auth-guard">
+        <div class="admin-auth-card">
+            <div class="admin-auth-badge">Access Restricted</div>
+            <h2>Authentication Required</h2>
+            <p>Please sign in first to access the admin dashboard.</p>
+            <button class="admin-auth-btn" @onclick="GoToHome">Go to Home</button>
+        </div>
+    </div>
+}
+
+@code {
+    private string _currentPage = "dashboard";
+
+    private List<ClientRequest> _requests = [];
+    private List<BaseSvcStructure> _nails = [];
+    private List<BaseSvcStructure> _lashes = [];
+    private List<BaseSvcStructure> _eyebrows = [];
+    private List<BaseSvcStructure> _footspa = [];
+
+    private bool _isRequestsLoading = true;
+    private bool _isServicesLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadRequestsAsync(), LoadServicesAsync());
+    }
+
+    private Task OnPageChanged(string page)
+    {
+        _currentPage = page;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadRequestsAsync()
+    {
+        // _isRequestsLoading = true;
+
+        // try
+        // {
+        //     var requests = await AppDbOperator.GetClientRequestsAsync();
+
+        //     _requests = requests
+        //         .Where(x => x.ClientInformation is not null)
+        //         .OrderByDescending(x => x.ClientInformation.BookingDate)
+        //         .ThenByDescending(x => x.ClientInformation.ClientBookingId)
+        //         .ToList();
+        // }
+        // catch
+        // {
+        //     _requests = [];
+        // }
+        // finally
+        // {
+        //     _isRequestsLoading = false;
+        //     await InvokeAsync(StateHasChanged);
+        // }
+    }
+
+    private async Task LoadServicesAsync()
+    {
+        // _isServicesLoading = true;
+
+        // try
+        // {
+        //     var response = await AppDbOperator.GetServicesAsync();
+
+        //     _nails = (response.Nails ?? [])
+        //         .Select(x => (BaseSvcStructure)x)
+        //         .OrderBy(x => x.Details)
+        //         .ToList();
+
+        //     _lashes = (response.Lashes ?? [])
+        //         .Select(x => (BaseSvcStructure)x)
+        //         .OrderBy(x => x.Details)
+        //         .ToList();
+
+        //     _eyebrows = (response.Eyebrows ?? [])
+        //         .Select(x => (BaseSvcStructure)x)
+        //         .OrderBy(x => x.Details)
+        //         .ToList();
+
+        //     _footspa = (response.Footspa ?? [])
+        //         .Select(x => (BaseSvcStructure)x)
+        //         .OrderBy(x => x.Details)
+        //         .ToList();
+        // }
+        // catch
+        // {
+        //     _nails = [];
+        //     _lashes = [];
+        //     _eyebrows = [];
+        //     _footspa = [];
+        // }
+        // finally
+        // {
+        //     _isServicesLoading = false;
+        //     await InvokeAsync(StateHasChanged);
+        // }
+    }
+
+    private async Task UpdateRequestStatusAsync(ClientRequest request)
+    {
+        // await AppDbOperator.PostClientRequestAsync(request);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveServiceAsync(string category, BaseSvcStructure service)
+    {
+        // await AppDbOperator.SaveServiceAsync(category, service);
+        await LoadServicesAsync();
+    }
+
+    private async Task DeleteServiceAsync(string category, string uid)
+    {
+        // await AppDbOperator.DeleteServiceAsync(category, uid);
+        await LoadServicesAsync();
+    }
+
+    private void GoToHome()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
+
+<style>
+    .admin-shell {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        background: radial-gradient(circle at top left, rgba(90, 58, 180, 0.28), transparent 28%), radial-gradient(circle at bottom right, rgba(0, 180, 255, 0.18), transparent 30%), linear-gradient(135deg, #070b16 0%, #0d1324 45%, #111a31 100%);
+        color: #eef2ff;
+    }
+
+    .admin-sidebar {
+        min-height: 100vh;
+        border-right: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(14px);
+        background: linear-gradient(180deg, rgba(14, 18, 33, 0.92) 0%, rgba(10, 14, 26, 0.82) 100%);
+        position: sticky;
+        top: 0;
+    }
+
+    .admin-content {
+        min-width: 0;
+        padding: 24px;
+    }
+
+    .admin-auth-guard {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top left, rgba(90, 58, 180, 0.28), transparent 28%), radial-gradient(circle at bottom right, rgba(0, 180, 255, 0.18), transparent 30%), linear-gradient(135deg, #070b16 0%, #0d1324 45%, #111a31 100%);
+        padding: 24px;
+    }
+
+    .admin-auth-card {
+        width: 100%;
+        max-width: 460px;
+        padding: 32px;
+        border-radius: 28px;
+        background: radial-gradient(circle at top right, rgba(0, 198, 255, 0.12), transparent 28%), radial-gradient(circle at top left, rgba(124, 77, 255, 0.16), transparent 26%), linear-gradient(180deg, rgba(17, 22, 40, 0.98), rgba(10, 14, 26, 0.98));
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35);
+        color: #eef2ff;
+        text-align: center;
+    }
+
+    .admin-auth-badge {
+        display: inline-flex;
+        padding: 8px 12px;
+        border-radius: 999px;
+        margin-bottom: 16px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #b9c8ff;
+        background: rgba(124, 77, 255, 0.16);
+        border: 1px solid rgba(124, 77, 255, 0.3);
+    }
+
+    .admin-auth-card h2 {
+        margin: 0 0 10px;
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .admin-auth-card p {
+        margin: 0 0 22px;
+        color: #9dadcc;
+        font-size: 0.96rem;
+    }
+
+    .admin-auth-btn {
+        padding: 14px 20px;
+        border: none;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #7c4dff, #00c6ff);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    @@media (max-width: 1080px) {
+        .admin-shell {
+            grid-template-columns: 1fr;
+        }
+
+        .admin-sidebar {
+            min-height: auto;
+            position: relative;
+        }
+
+        .admin-content {
+            padding: 20px;
+        }
+    }
+</style>

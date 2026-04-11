@@ -1,0 +1,551 @@
+﻿<section class="service-section">
+    <div class="section-header">
+        <div>
+            <div class="section-kicker">Category</div>
+            <h2>@Title</h2>
+        </div>
+    </div>
+
+    <div class="service-cards">
+        @foreach (var svc in Services)
+        {
+            var cardKey = GetCardKey(svc);
+            var isBooked = BookedUids.Contains(cardKey);
+            var hasBranch = HasSelectedBranch(cardKey);
+            var hasDate = HasSelectedDate(cardKey);
+
+            <article class="service-card @(svc.ScheduleSlots.IsAvailable ? "" : "service-card-disabled")" @key="cardKey">
+                <div class="service-top">
+                    <div class="service-title-wrap">
+                        <div class="service-name">@svc.Details</div>
+                        <div class="service-subtitle">@Title treatment</div>
+                    </div>
+
+                    <div class="service-price">₱@svc.Cost</div>
+                </div>
+
+                <div class="field-group">
+                    <label>Select Branch</label>
+                    <select class="field-input"
+                            value="@GetSelectedBranchValue(cardKey)"
+                            @onchange="e => OnBranchChanged(cardKey, e.Value?.ToString())">
+                        <option value="">Choose branch</option>
+                        @foreach (var branch in Enum.GetValues<ServiceBranch>())
+                        {
+                            <option value="@branch.ToString()">@BranchNames[branch]</option>
+                        }
+                    </select>
+                </div>
+
+                @if (svc.Designs?.Count > 0)
+                {
+                    <div class="field-group">
+                        <label>Design</label>
+                        <select class="field-input" @bind="designSelections[cardKey]">
+                            @foreach (var d in svc.Designs)
+                            {
+                                <option value="@d.DesignName">@d.DesignName</option>
+                            }
+                        </select>
+
+                        @{
+                            var selected = svc.Designs.FirstOrDefault(x => x.DesignName == designSelections[cardKey]);
+                        }
+
+                        @if (selected != null)
+                        {
+                            <div class="selected-design-name">
+                                Selected: <span>@selected.DesignName</span>
+                            </div>
+
+                            <div class="design-gallery">
+                                @foreach (var img in selected.ImageUrls)
+                                {
+                                    var imageUrl = GetImageUrl(img);
+                                    <button type="button" class="design-image-card" @onclick="() => OpenImagePreview(imageUrl, selected.DesignName)">
+                                        <img src="@imageUrl" alt="@selected.DesignName" />
+                                        <div class="design-image-overlay">
+                                            <span>View</span>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (hasBranch)
+                {
+                    <div class="field-group reveal-block">
+                        <label>Select Date</label>
+
+                        <div class="calendar-shell">
+                            <div class="calendar-header">
+                                <button type="button" class="calendar-nav" @onclick="() => ChangeMonth(cardKey, -1)">‹</button>
+                                <span>@GetMonthLabel(cardKey)</span>
+                                <button type="button" class="calendar-nav" @onclick="() => ChangeMonth(cardKey, 1)">›</button>
+                            </div>
+
+                            <div class="weekdays">
+                                <span>Sun</span>
+                                <span>Mon</span>
+                                <span>Tue</span>
+                                <span>Wed</span>
+                                <span>Thu</span>
+                                <span>Fri</span>
+                                <span>Sat</span>
+                            </div>
+
+                            <div class="calendar-grid">
+                                @foreach (var day in GetCalendarDays(svc, cardKey))
+                                {
+                                    <button class="day-button @(day.IsCurrentMonth ? "" : "outside-month") @(day.IsAllowed ? "allowed" : "blocked") @(IsSelectedDate(cardKey, day.Date) ? "selected" : "")"
+                                            disabled="@(!day.IsAllowed || isBooked || day.Date.Date < DateTime.Today)"
+                                            title="@day.Title"
+                                            @onclick="() => SelectDate(svc, cardKey, day.Date)">
+                                        @day.Date.Day
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="availability-note">
+                            Available days: @string.Join(", ", svc.ScheduleSlots.DaySlots)
+                        </div>
+                    </div>
+                }
+
+                @if (hasDate)
+                {
+                    <div class="field-group reveal-block">
+                        <label>Select Time</label>
+
+                        <select class="field-input" value="@GetSelectedTime(cardKey)" @onchange="e => OnTimeChanged(cardKey, e.Value?.ToString())">
+                            <option value="">Choose time</option>
+                            @foreach (var t in svc.ScheduleSlots.TimeSlots)
+                            {
+                                var slotStatus = GetTimeSlotStatus(svc, cardKey, t);
+                                <option value="@t" disabled="@(slotStatus != TimeSlotStatus.Available)">@GetTimeSlotLabel(svc, cardKey, t)</option>
+                            }
+                        </select>
+
+                        @if (HasSelectedDate(cardKey))
+                        {
+                            var selectedTime = GetSelectedTime(cardKey);
+                            var selectedStatus = string.IsNullOrWhiteSpace(selectedTime)
+                            ? TimeSlotStatus.Available
+                            : GetTimeSlotStatus(svc, cardKey, selectedTime);
+
+                            if (selectedStatus == TimeSlotStatus.BookedByYou)
+                            {
+                                var conflict = GetCurrentBookingConflict(cardKey, SelectedDates[cardKey], selectedTime);
+                                var serviceLabel = conflict is null
+                                ? "another service"
+                                : (!string.IsNullOrWhiteSpace(conflict.ServiceDetails) ? conflict.ServiceDetails : conflict.ServiceName);
+
+                                <div class="slot-status-note slot-status-note-conflict">
+                                    This time is not available because you already booked <strong>@serviceLabel</strong> on @SelectedDates[cardKey].ToString("MMMM dd, yyyy") at @selectedTime.
+                                </div>
+                            }
+                            else if (selectedStatus == TimeSlotStatus.Full)
+                            {
+                                <div class="slot-status-note slot-status-note-full">
+                                    This time slot is already full for selected bookings.
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+                <div class="service-footer">
+                    <button class="book-button"
+                            disabled="@(!svc.ScheduleSlots.IsAvailable || isBooked || !HasSelectedBranch(cardKey) || !HasSelectedDate(cardKey) || !HasAvailableSelectedTime(svc, cardKey))"
+                            @onclick="() => Book(svc, cardKey)">
+                        @(isBooked ? "Already Added" : "Add to Booking")
+                    </button>
+                </div>
+            </article>
+        }
+    </div>
+</section>
+
+@if (showImagePreview)
+{
+    <div class="design-modal-backdrop" @onclick="CloseImagePreview">
+        <div class="design-modal" @onclick:stopPropagation="true">
+            <button type="button" class="design-modal-close" @onclick="CloseImagePreview">×</button>
+            <div class="design-modal-title">@previewTitle</div>
+            <div class="design-modal-image-wrap">
+                <img src="@previewImageUrl" alt="@previewTitle" class="design-modal-image" />
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public List<BaseSvcStructure> Services { get; set; } = [];
+    [Parameter] public List<string> BookedUids { get; set; } = [];
+    [Parameter] public List<ApptSchedRec> AppointmentSchedules { get; set; } = [];
+    [Parameter] public List<ClientService> CurrentBookings { get; set; } = [];
+    [Parameter] public EventCallback<ClientService> OnBook { get; set; }
+
+    private Dictionary<string, DateTime> CurrentMonth = new();
+    private Dictionary<string, DateTime> SelectedDates = new();
+    private Dictionary<string, string> timeSelections = new();
+    private Dictionary<string, string> designSelections = new();
+    private Dictionary<string, ServiceBranch?> branchSelections = new();
+
+    private bool showImagePreview;
+    private string previewImageUrl = "";
+    private string previewTitle = "";
+
+    protected override void OnParametersSet()
+    {
+        foreach (var svc in Services)
+        {
+            var cardKey = GetCardKey(svc);
+
+            if (!CurrentMonth.ContainsKey(cardKey))
+                CurrentMonth[cardKey] = DateTime.Today;
+
+            if (!designSelections.ContainsKey(cardKey) && svc.Designs.Count > 0)
+                designSelections[cardKey] = svc.Designs.First().DesignName;
+
+            if (!branchSelections.ContainsKey(cardKey))
+                branchSelections[cardKey] = null;
+
+            if (!timeSelections.ContainsKey(cardKey))
+                timeSelections[cardKey] = "";
+        }
+    }
+
+    string GetCardKey(BaseSvcStructure svc)
+        => $"{Title}|{svc.Uid}|{svc.Details}|{svc.Cost}";
+
+    string GetMonthLabel(string cardKey)
+        => CurrentMonth[cardKey].ToString("MMMM yyyy");
+
+    void ChangeMonth(string cardKey, int offset)
+        => CurrentMonth[cardKey] = CurrentMonth[cardKey].AddMonths(offset);
+
+    string GetSelectedBranchValue(string cardKey)
+    {
+        if (branchSelections.TryGetValue(cardKey, out var value) && value.HasValue)
+            return value.Value.ToString();
+
+        return "";
+    }
+
+    bool HasSelectedBranch(string cardKey)
+        => branchSelections.TryGetValue(cardKey, out var value) && value.HasValue;
+
+    void OnBranchChanged(string cardKey, string? value)
+    {
+        ServiceBranch? parsedBranch = null;
+
+        if (!string.IsNullOrWhiteSpace(value) && Enum.TryParse<ServiceBranch>(value, out var branch))
+            parsedBranch = branch;
+
+        var existingBranch = branchSelections.TryGetValue(cardKey, out var current) ? current : null;
+        var changed = existingBranch != parsedBranch;
+
+        branchSelections[cardKey] = parsedBranch;
+
+        if (changed)
+        {
+            SelectedDates.Remove(cardKey);
+            timeSelections[cardKey] = "";
+            CurrentMonth[cardKey] = DateTime.Today;
+        }
+    }
+
+    List<CalendarDay> GetCalendarDays(BaseSvcStructure svc, string cardKey)
+    {
+        var firstDay = new DateTime(CurrentMonth[cardKey].Year, CurrentMonth[cardKey].Month, 1);
+        var start = firstDay.AddDays(-(int)firstDay.DayOfWeek);
+
+        var days = new List<CalendarDay>();
+
+        for (int i = 0; i < 42; i++)
+        {
+            var date = start.AddDays(i);
+            var dayName = date.DayOfWeek.ToString();
+            var isDayAllowed = svc.ScheduleSlots.DaySlots.Contains(dayName);
+            var hasSlot = isDayAllowed && HasAnyAvailableSlotForDate(svc, cardKey, date);
+
+            days.Add(new CalendarDay
+            {
+                Date = date,
+                IsCurrentMonth = date.Month == CurrentMonth[cardKey].Month,
+                IsAllowed = hasSlot,
+                Title = hasSlot ? "Available" : "No available time"
+            });
+        }
+
+        return days;
+    }
+
+    void SelectDate(BaseSvcStructure svc, string cardKey, DateTime date)
+    {
+        SelectedDates[cardKey] = date.Date;
+        timeSelections[cardKey] = "";
+    }
+
+    bool IsSelectedDate(string cardKey, DateTime date)
+        => SelectedDates.ContainsKey(cardKey) && SelectedDates[cardKey].Date == date.Date;
+
+    bool HasSelectedDate(string cardKey)
+        => SelectedDates.ContainsKey(cardKey);
+
+    string GetSelectedTime(string cardKey)
+    {
+        if (timeSelections.TryGetValue(cardKey, out var value))
+            return value;
+
+        return "";
+    }
+
+    void OnTimeChanged(string cardKey, string? value)
+    {
+        timeSelections[cardKey] = value ?? "";
+    }
+
+    bool HasAnyAvailableSlotForDate(BaseSvcStructure svc, string cardKey, DateTime date)
+    {
+        var timeSlots = svc.ScheduleSlots.TimeSlots ?? [];
+        if (timeSlots.Count == 0)
+            return false;
+
+        return timeSlots.Any(slot => GetTimeSlotStatusForDate(svc, cardKey, date, slot) == TimeSlotStatus.Available);
+    }
+
+    bool HasAvailableSelectedTime(BaseSvcStructure svc, string cardKey)
+    {
+        if (!HasSelectedDate(cardKey))
+            return false;
+
+        var selectedTime = GetSelectedTime(cardKey);
+        if (string.IsNullOrWhiteSpace(selectedTime))
+            return false;
+
+        return GetTimeSlotStatus(svc, cardKey, selectedTime) == TimeSlotStatus.Available;
+    }
+
+    TimeSlotStatus GetTimeSlotStatus(BaseSvcStructure svc, string cardKey, string timeSlot)
+    {
+        if (!SelectedDates.ContainsKey(cardKey))
+            return TimeSlotStatus.Available;
+
+        return GetTimeSlotStatusForDate(svc, cardKey, SelectedDates[cardKey], timeSlot);
+    }
+
+    TimeSlotStatus GetTimeSlotStatusForDate(BaseSvcStructure svc, string cardKey, DateTime date, string timeSlot)
+    {
+        if (IsAlreadyBookedInCurrentSelection(cardKey, date, timeSlot))
+            return TimeSlotStatus.BookedByYou;
+
+        if (IsNailService(svc) && IsTimeSlotFull(date, timeSlot))
+            return TimeSlotStatus.Full;
+
+        return TimeSlotStatus.Available;
+    }
+
+    string GetTimeSlotLabel(BaseSvcStructure svc, string cardKey, string timeSlot)
+    {
+        var status = GetTimeSlotStatus(svc, cardKey, timeSlot);
+
+        if (status == TimeSlotStatus.BookedByYou)
+        {
+            var conflict = GetCurrentBookingConflict(cardKey, SelectedDates[cardKey], timeSlot);
+
+            if (conflict is not null)
+            {
+                var serviceLabel = !string.IsNullOrWhiteSpace(conflict.ServiceDetails)
+                    ? conflict.ServiceDetails
+                    : conflict.ServiceName;
+
+                return $"{timeSlot} - Already booked for {serviceLabel}";
+            }
+
+            return $"{timeSlot} - Already booked on another service";
+        }
+
+        if (status == TimeSlotStatus.Full)
+            return $"{timeSlot} - Full";
+
+        return timeSlot;
+    }
+
+    ClientService? GetCurrentBookingConflict(string cardKey, DateTime date, string timeSlot)
+    {
+        var slotDateTime = CombineDateAndTime(date, timeSlot);
+
+        return CurrentBookings.FirstOrDefault(x =>
+            !string.Equals(x.ServiceUid, cardKey, StringComparison.OrdinalIgnoreCase) &&
+            x.ServiceDate == slotDateTime);
+    }
+
+    bool IsAlreadyBookedInCurrentSelection(string cardKey, DateTime date, string timeSlot)
+    {
+        return GetCurrentBookingConflict(cardKey, date, timeSlot) is not null;
+    }
+
+    bool IsTimeSlotFull(DateTime date, string timeSlot)
+    {
+        var startText = NormalizeStartTimeLabel(timeSlot);
+        if (!Capacities.NailSlotCapacities.TryGetValue(startText, out var capacity))
+            return false;
+
+        var slotDateTime = CombineDateAndTime(date, timeSlot);
+
+        var bookedCount = AppointmentSchedules
+            .Where(x => x.ServiceDate == slotDateTime)
+            .Where(IsNailBooking)
+            .Select(x => x.ClientBookingId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        return bookedCount >= capacity;
+    }
+
+    bool IsNailService(BaseSvcStructure svc)
+    {
+        return Title.Contains("nail", StringComparison.OrdinalIgnoreCase)
+            || svc.Details.Contains("nail", StringComparison.OrdinalIgnoreCase);
+    }
+
+    bool IsNailBooking(ApptSchedRec record)
+    {
+        if (record.Services is null || record.Services.Count == 0)
+            return true;
+
+        return record.Services.Any(x =>
+            (!string.IsNullOrWhiteSpace(x.ServiceName) && x.ServiceName.Contains("nail", StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(x.ServiceDetails) && x.ServiceDetails.Contains("nail", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    DateTime CombineDateAndTime(DateTime date, string timeRange)
+    {
+        var startText = ExtractStartTimeText(timeRange);
+
+        if (DateTime.TryParse(startText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            return new DateTime(date.Year, date.Month, date.Day, parsed.Hour, parsed.Minute, 0);
+        }
+
+        if (DateTime.TryParseExact(startText, new[] { "h tt", "hh tt", "h:mm tt", "hh:mm tt" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+        {
+            return new DateTime(date.Year, date.Month, date.Day, parsed.Hour, parsed.Minute, 0);
+        }
+
+        return date;
+    }
+
+    string ExtractStartTimeText(string timeRange)
+    {
+        if (string.IsNullOrWhiteSpace(timeRange))
+            return "12:00 AM";
+
+        var normalized = timeRange.Trim().ToUpperInvariant();
+        var meridiemMatch = Regex.Match(normalized, @"\b(AM|PM)\b");
+        var firstPart = normalized.Split('-')[0].Trim();
+
+        if (!Regex.IsMatch(firstPart, @"\b(AM|PM)\b") && meridiemMatch.Success)
+            firstPart = $"{firstPart} {meridiemMatch.Value}";
+
+        if (Regex.IsMatch(firstPart, @"^\d{1,2}$"))
+            firstPart = $"{firstPart}:00 {(meridiemMatch.Success ? meridiemMatch.Value : "AM")}";
+
+        return firstPart;
+    }
+
+    string NormalizeStartTimeLabel(string timeRange)
+    {
+        var startText = ExtractStartTimeText(timeRange);
+
+        if (DateTime.TryParse(startText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+            return parsed.ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+        if (DateTime.TryParseExact(startText, new[] { "h tt", "hh tt", "h:mm tt", "hh:mm tt" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+            return parsed.ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+        return startText;
+    }
+
+    string GetImageUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+            return "";
+
+        if (!url.Contains("drive.google.com", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        var patterns = new[]
+        {
+            @"\/file\/d\/([a-zA-Z0-9_-]+)",
+            @"[?&]id=([a-zA-Z0-9_-]+)",
+            @"\/open\?id=([a-zA-Z0-9_-]+)",
+            @"\/uc\?export=view&id=([a-zA-Z0-9_-]+)",
+            @"\/thumbnail\?id=([a-zA-Z0-9_-]+)"
+        };
+
+        foreach (var pattern in patterns)
+        {
+            var match = Regex.Match(url, pattern);
+            if (match.Success && match.Groups.Count > 1)
+            {
+                var fileId = match.Groups[1].Value;
+                return $"https://drive.google.com/thumbnail?id={fileId}&sz=w1200";
+            }
+        }
+
+        return url;
+    }
+
+    void OpenImagePreview(string imageUrl, string title)
+    {
+        previewImageUrl = imageUrl;
+        previewTitle = title;
+        showImagePreview = true;
+    }
+
+    void CloseImagePreview()
+    {
+        showImagePreview = false;
+        previewImageUrl = "";
+        previewTitle = "";
+    }
+
+    async Task Book(BaseSvcStructure svc, string cardKey)
+    {
+        if (!SelectedDates.ContainsKey(cardKey))
+            return;
+
+        var selectedTime = GetSelectedTime(cardKey);
+        if (string.IsNullOrWhiteSpace(selectedTime))
+            return;
+
+        var slotStatus = GetTimeSlotStatus(svc, cardKey, selectedTime);
+        if (slotStatus != TimeSlotStatus.Available)
+            return;
+
+        if (!branchSelections.TryGetValue(cardKey, out var selectedBranch) || !selectedBranch.HasValue)
+            return;
+
+        var combinedDate = CombineDateAndTime(SelectedDates[cardKey], selectedTime);
+
+        var data = new ClientService
+        {
+            ServiceUid = cardKey,
+            ServiceName = Title,
+            ServiceDesign = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
+            ServiceDetails = svc.Details,
+            ServiceCost = svc.Cost,
+            Branch = selectedBranch.Value,
+            ServiceDate = combinedDate
+        };
+
+        await OnBook.InvokeAsync(data);
+    }
+}
