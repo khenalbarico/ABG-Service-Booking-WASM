@@ -1,7 +1,8 @@
 ﻿@page "/admin"
-@inject AuthState         AuthState
+@using WasmCore1.ApiModels
+@inject AuthState AuthState
 @inject NavigationManager NavigationManager
-@inject AppDb             Db
+@inject AppDb Db
 
 <PageTitle>ABG Studios Admin</PageTitle>
 
@@ -28,8 +29,12 @@
                                     Footspa="@_footspa"
                                     IsLoading="@_isServicesLoading"
                                     SaveServiceAsync="@SaveServiceAsync"
-                                    DeleteServiceAsync="@DeleteServiceAsync"
-                                    RefreshServicesAsync="@LoadServicesAsync" />
+                                    DeleteServiceAsync="@DeleteServiceAsync" />
+                    break;
+                case "schedule":
+                    <Admin_Schedule ScheduleCfg="@_scheduleCfg"
+                                    IsLoading="@_isScheduleLoading"
+                                    SaveScheduleAsync="@SaveScheduleAsync" />
                     break;
                 default:
                     <Admin_Dashboard Requests="@_requests"
@@ -62,12 +67,15 @@ else
     private List<BaseSvcStructure> _eyebrows = [];
     private List<BaseSvcStructure> _footspa = [];
 
+    private ScheduleCfg _scheduleCfg = new();
+
     private bool _isRequestsLoading = true;
     private bool _isServicesLoading = true;
+    private bool _isScheduleLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        await Task.WhenAll(LoadRequestsAsync(), LoadServicesAsync());
+        await Task.WhenAll(LoadRequestsAsync(), LoadServicesAsync(), LoadScheduleAsync());
     }
 
     private Task OnPageChanged(string page)
@@ -144,6 +152,31 @@ else
         }
     }
 
+    private async Task LoadScheduleAsync()
+    {
+        _isScheduleLoading = true;
+
+        try
+        {
+            var response = await Db.GetScheduleCfgAsync();
+
+            _scheduleCfg = response ?? new ScheduleCfg();
+
+            _scheduleCfg.StoreHours ??= [];
+            _scheduleCfg.NailsAccommodationCapacities ??= [];
+            _scheduleCfg.OtherServicesAccommodationCapacities ??= [];
+        }
+        catch
+        {
+            _scheduleCfg = new ScheduleCfg();
+        }
+        finally
+        {
+            _isScheduleLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task UpdateRequestStatusAsync(ClientRequest request)
     {
         await Db.PostClientRequestAsync(request);
@@ -160,6 +193,18 @@ else
     {
         await Db.DeleteServiceAsync(category, uid);
         await LoadServicesAsync();
+    }
+
+    private async Task SaveScheduleAsync(ScheduleCfg cfg)
+    {
+        await Db.PostScheduleCfgAsync(cfg);
+        _scheduleCfg = new ScheduleCfg
+        {
+            StoreHours = cfg.StoreHours?.ToList() ?? [],
+            NailsAccommodationCapacities = cfg.NailsAccommodationCapacities?.ToDictionary(x => x.Key, x => x.Value) ?? [],
+            OtherServicesAccommodationCapacities = cfg.OtherServicesAccommodationCapacities?.ToDictionary(x => x.Key, x => x.Value) ?? []
+        };
+        await InvokeAsync(StateHasChanged);
     }
 
     private void GoToHome()

@@ -1,4 +1,4 @@
-﻿@inject AuthState         AuthState
+﻿@inject AuthState AuthState
 @inject NavigationManager NavigationManager
 
 <div class="nav-wrapper">
@@ -24,6 +24,13 @@
             <span class="nav-item-icon">✦</span>
             <span class="nav-item-text">Services</span>
         </button>
+
+        <button type="button"
+                class="nav-item @(CurrentPage == "schedule" ? "active" : "")"
+                @onclick='() => ChangePage("schedule")'>
+            <span class="nav-item-icon">◷</span>
+            <span class="nav-item-text">Schedule</span>
+        </button>
     </div>
 
     <div class="nav-footer">
@@ -34,7 +41,7 @@
 </div>
 
 @code {
-    [Parameter] public string CurrentPage                       { get; set; } = "dashboard";
+    [Parameter] public string CurrentPage { get; set; } = "dashboard";
     [Parameter] public EventCallback<string> CurrentPageChanged { get; set; }
 
     private async Task ChangePage(string page)

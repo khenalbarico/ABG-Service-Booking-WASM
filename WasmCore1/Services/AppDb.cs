@@ -1,4 +1,5 @@
-﻿using WasmCore1.Models.__Base__;
+﻿using WasmCore1.ApiModels;
+using WasmCore1.Models.__Base__;
 using WasmCore1.Models.Client;
 using WasmCore1.Models.Schedules;
 using WasmCore1.Models.Service;
@@ -25,4 +26,10 @@ public class AppDb (IApiClient _apiClient)
 
     public async Task DeleteServiceAsync(string category, string serviceUid, CancellationToken ct = default)
     => await _apiClient.PostAsync("IAppDbOperator", "DeleteServiceAsync", new { category, serviceUid }, ct);
+
+    public async Task<ScheduleCfg> GetScheduleCfgAsync(CancellationToken ct = default)
+    => await _apiClient.GetAsync<ScheduleCfg>("IAppDbOperator", "GetScheduleCfgAsync", ct);
+
+    public async Task PostScheduleCfgAsync(ScheduleCfg cfg, CancellationToken ct = default)
+    => await _apiClient.PostAsync("IAppDbOperator", "PostScheduleCfgAsync", cfg, ct);
 }

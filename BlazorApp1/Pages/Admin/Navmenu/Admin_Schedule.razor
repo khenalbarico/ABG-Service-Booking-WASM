@@ -1,0 +1,524 @@
+﻿<div class="schedule-page">
+    <div class="schedule-header">
+        <div class="schedule-header-copy">
+            <div class="schedule-badge">Schedule Manager</div>
+            <h1>Store Schedule Configuration</h1>
+            <p>Manage store hours and accommodation capacities for nails and other services.</p>
+        </div>
+
+        <div class="schedule-header-actions">
+            <div class="schedule-save-state @(_hasPendingChanges ? "dirty" : "clean")">
+                <span class="schedule-save-dot"></span>
+                <span>@(_hasPendingChanges ? "Unsaved changes" : "All changes saved")</span>
+            </div>
+
+            <button class="schedule-primary-btn"
+                    @onclick="SaveAsync"
+                    disabled="@(!_canSave)">
+                @(_isSaving ? "Saving..." : "Save Schedule")
+            </button>
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="schedule-loading-panel">
+            <div class="schedule-loading-spinner"></div>
+            <div class="schedule-loading-text">Loading schedule configuration...</div>
+        </div>
+    }
+    else
+    {
+        <div class="schedule-grid">
+            <div class="schedule-card">
+                <div class="schedule-card-head">
+                    <div>
+                        <h2>Store Hours</h2>
+                        <p>Set automatic hours or manually manage each time slot.</p>
+                    </div>
+                </div>
+
+                @if (_storeHours.Count == 0)
+                {
+                    <div class="schedule-section">
+                        <div class="schedule-mode-row">
+                            <button type="button"
+                                    class="schedule-tab-btn @(_hoursMode == "auto" ? "active" : "")"
+                                    @onclick='() => SetHoursMode("auto")'>
+                                Set Automatic Store Hours
+                            </button>
+
+                            <button type="button"
+                                    class="schedule-tab-btn @(_hoursMode == "manual" ? "active" : "")"
+                                    @onclick='() => SetHoursMode("manual")'>
+                                Manual Store Hours
+                            </button>
+                        </div>
+
+                        @if (_hoursMode == "auto")
+                        {
+                            <div class="auto-hours-grid">
+                                <div class="field-group">
+                                    <label>Start Hour</label>
+                                    <InputText class="field-input"
+                                               @bind-Value="_autoStartHour"
+                                               @bind-Value:after="NotifyDraftChanged" />
+                                </div>
+
+                                <div class="field-group">
+                                    <label>Start Period</label>
+                                    <select class="field-input"
+                                            value="@_autoStartPeriod"
+                                            @onchange="OnAutoStartPeriodChanged">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+
+                                <div class="field-group">
+                                    <label>End Hour</label>
+                                    <InputText class="field-input"
+                                               @bind-Value="_autoEndHour"
+                                               @bind-Value:after="NotifyDraftChanged" />
+                                </div>
+
+                                <div class="field-group">
+                                    <label>End Period</label>
+                                    <select class="field-input"
+                                            value="@_autoEndPeriod"
+                                            @onchange="OnAutoEndPeriodChanged">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="schedule-inline-actions">
+                                <button type="button" class="schedule-secondary-btn" @onclick="GenerateAutomaticStoreHours">
+                                    Generate Store Hours
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="manual-hours-list">
+                                @for (var i = 0; i < _manualStoreHours.Count; i++)
+                                {
+                                    var index = i;
+                                    <div class="manual-hours-row">
+                                        <InputText class="field-input"
+                                                   @bind-Value="_manualStoreHours[index]"
+                                                   @bind-Value:after="NotifyDraftChanged" />
+                                        <button type="button" class="danger-icon-btn" @onclick="() => RemoveManualHour(index)">Delete</button>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="schedule-inline-actions">
+                                <button type="button" class="schedule-secondary-btn" @onclick="AddManualHour">Add Store Hour</button>
+                                <button type="button" class="schedule-secondary-btn" @onclick="ApplyManualStoreHours">Apply Manual Store Hours</button>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="schedule-section">
+                        <div class="schedule-list">
+                            @for (var i = 0; i < _storeHours.Count; i++)
+                            {
+                                var index = i;
+                                <div class="schedule-list-row">
+                                    <div class="schedule-list-index">@(index + 1)</div>
+                                    <InputText class="field-input"
+                                               @bind-Value="_storeHours[index]"
+                                               @bind-Value:after="OnStoreHoursChanged" />
+                                    <button type="button" class="danger-icon-btn" @onclick="() => RemoveStoreHour(index)">Delete</button>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="schedule-inline-actions">
+                            <button type="button" class="schedule-secondary-btn" @onclick="AddStoreHour">Add Store Hour</button>
+                            <button type="button" class="schedule-secondary-btn" @onclick="ResetStoreHours">Reset Store Hours</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (_storeHours.Count > 0)
+            {
+                <div class="schedule-card">
+                    <div class="schedule-card-head">
+                        <div>
+                            <h2>Nails Accommodation Capacities</h2>
+                            <p>Set the allowed capacity for each store hour.</p>
+                        </div>
+                    </div>
+
+                    <div class="capacity-list">
+                        @foreach (var hour in _storeHours)
+                        {
+                            <div class="capacity-row">
+                                <div class="capacity-key">@hour</div>
+                                <input type="number"
+                                       class="field-input capacity-input"
+                                       value="@GetNailsCapacity(hour)"
+                                       @oninput="@(e => SetNailsCapacity(hour, e.Value))" />
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="schedule-card">
+                    <div class="schedule-card-head">
+                        <div>
+                            <h2>Other Services Accommodation Capacities</h2>
+                            <p>Set the allowed capacity for each store hour.</p>
+                        </div>
+                    </div>
+
+                    <div class="capacity-list">
+                        @foreach (var hour in _storeHours)
+                        {
+                            <div class="capacity-row">
+                                <div class="capacity-key">@hour</div>
+                                <input type="number"
+                                       class="field-input capacity-input"
+                                       value="@GetOtherCapacity(hour)"
+                                       @oninput="@(e => SetOtherCapacity(hour, e.Value))" />
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(_statusMessage))
+        {
+            <div class="schedule-status @(_isError ? "error" : "success")">@_statusMessage</div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public ScheduleCfg ScheduleCfg { get; set; } = new();
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public Func<ScheduleCfg, Task>? SaveScheduleAsync { get; set; }
+
+    private List<string> _storeHours = [];
+    private Dictionary<string, int> _nailsCapacities = [];
+    private Dictionary<string, int> _otherCapacities = [];
+
+    private List<string> _manualStoreHours = [""];
+    private string _hoursMode = "auto";
+    private string _autoStartHour = "";
+    private string _autoStartPeriod = "AM";
+    private string _autoEndHour = "";
+    private string _autoEndPeriod = "PM";
+
+    private bool _isSaving;
+    private bool _isError;
+    private bool _hasPendingChanges;
+    private string _statusMessage = "";
+    private string _snapshot = "";
+
+    private bool _canSave => !IsLoading && !_isSaving && _hasPendingChanges && _storeHours.Count > 0;
+
+    protected override void OnParametersSet()
+    {
+        var incoming = SerializeCfg(ScheduleCfg);
+
+        if (_snapshot == incoming)
+            return;
+
+        _snapshot = incoming;
+
+        _storeHours = ScheduleCfg?.StoreHours?.ToList() ?? [];
+        _nailsCapacities = ScheduleCfg?.NailsAccommodationCapacities?.ToDictionary(x => x.Key, x => x.Value) ?? [];
+        _otherCapacities = ScheduleCfg?.OtherServicesAccommodationCapacities?.ToDictionary(x => x.Key, x => x.Value) ?? [];
+
+        NormalizeCapacities(false);
+
+        if (_storeHours.Count == 0)
+            _manualStoreHours = [""];
+
+        _hasPendingChanges = false;
+        _statusMessage = "";
+        _isError = false;
+    }
+
+    private void SetHoursMode(string mode)
+    {
+        _hoursMode = mode;
+        NotifyDraftChanged();
+    }
+
+    private void OnAutoStartPeriodChanged(ChangeEventArgs e)
+    {
+        _autoStartPeriod = e.Value?.ToString() ?? "AM";
+        NotifyDraftChanged();
+    }
+
+    private void OnAutoEndPeriodChanged(ChangeEventArgs e)
+    {
+        _autoEndPeriod = e.Value?.ToString() ?? "PM";
+        NotifyDraftChanged();
+    }
+
+    private void NotifyDraftChanged()
+    {
+        _hasPendingChanges = true;
+        if (!_isError)
+            _statusMessage = "";
+    }
+
+    private void GenerateAutomaticStoreHours()
+    {
+        _statusMessage = "";
+        _isError = false;
+
+        if (!int.TryParse(_autoStartHour, out var startHour) || !int.TryParse(_autoEndHour, out var endHour))
+        {
+            _isError = true;
+            _statusMessage = "Please enter valid numeric start and end hours.";
+            return;
+        }
+
+        if (startHour < 1 || startHour > 12 || endHour < 1 || endHour > 12)
+        {
+            _isError = true;
+            _statusMessage = "Hours must be from 1 to 12.";
+            return;
+        }
+
+        var start = To24Hour(startHour, _autoStartPeriod);
+        var end = To24Hour(endHour, _autoEndPeriod);
+
+        if (end <= start)
+            end += 24;
+
+        var diff = end - start;
+
+        if (diff <= 0)
+        {
+            _isError = true;
+            _statusMessage = "End time must be later than start time.";
+            return;
+        }
+
+        var generated = new List<string>();
+
+        for (var hour = start; hour < end; hour++)
+            generated.Add($"{FormatHour(hour)}-{FormatHour(hour + 1)}");
+
+        _storeHours = generated;
+        NormalizeCapacities(true);
+    }
+
+    private void AddManualHour()
+    {
+        _manualStoreHours.Add("");
+        NotifyDraftChanged();
+    }
+
+    private void RemoveManualHour(int index)
+    {
+        if (index < 0 || index >= _manualStoreHours.Count)
+            return;
+
+        _manualStoreHours.RemoveAt(index);
+
+        if (_manualStoreHours.Count == 0)
+            _manualStoreHours.Add("");
+
+        NotifyDraftChanged();
+    }
+
+    private void ApplyManualStoreHours()
+    {
+        var cleaned = _manualStoreHours
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct()
+            .ToList();
+
+        if (cleaned.Count == 0)
+        {
+            _isError = true;
+            _statusMessage = "Please add at least one store hour.";
+            return;
+        }
+
+        _isError = false;
+        _statusMessage = "";
+        _storeHours = cleaned;
+        NormalizeCapacities(true);
+    }
+
+    private void AddStoreHour()
+    {
+        _storeHours.Add("");
+        NormalizeCapacities(true);
+    }
+
+    private void RemoveStoreHour(int index)
+    {
+        if (index < 0 || index >= _storeHours.Count)
+            return;
+
+        _storeHours.RemoveAt(index);
+        NormalizeCapacities(true);
+    }
+
+    private void ResetStoreHours()
+    {
+        _storeHours = [];
+        _nailsCapacities = [];
+        _otherCapacities = [];
+        _manualStoreHours = [""];
+        _hoursMode = "auto";
+        _statusMessage = "";
+        _isError = false;
+        _hasPendingChanges = true;
+    }
+
+    private void OnStoreHoursChanged()
+    {
+        NormalizeCapacities(true);
+    }
+
+    private void NormalizeCapacities(bool markDirty)
+    {
+        var cleanedHours = _storeHours
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct()
+            .ToList();
+
+        var nails = new Dictionary<string, int>();
+        var other = new Dictionary<string, int>();
+
+        foreach (var hour in cleanedHours)
+        {
+            nails[hour] = _nailsCapacities.TryGetValue(hour, out var nailsValue) ? nailsValue : 0;
+            other[hour] = _otherCapacities.TryGetValue(hour, out var otherValue) ? otherValue : 0;
+        }
+
+        _storeHours = cleanedHours;
+        _nailsCapacities = nails;
+        _otherCapacities = other;
+
+        if (markDirty)
+            _hasPendingChanges = true;
+
+        if (!_isError)
+            _statusMessage = "";
+    }
+
+    private int GetNailsCapacity(string hour)
+    {
+        return _nailsCapacities.TryGetValue(hour, out var value) ? value : 0;
+    }
+
+    private void SetNailsCapacity(string hour, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out var parsed))
+            _nailsCapacities[hour] = parsed < 0 ? 0 : parsed;
+        else
+            _nailsCapacities[hour] = 0;
+
+        NotifyDraftChanged();
+    }
+
+    private int GetOtherCapacity(string hour)
+    {
+        return _otherCapacities.TryGetValue(hour, out var value) ? value : 0;
+    }
+
+    private void SetOtherCapacity(string hour, object? value)
+    {
+        if (int.TryParse(value?.ToString(), out var parsed))
+            _otherCapacities[hour] = parsed < 0 ? 0 : parsed;
+        else
+            _otherCapacities[hour] = 0;
+
+        NotifyDraftChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        _statusMessage = "";
+        _isError = false;
+
+        NormalizeCapacities(false);
+
+        if (_storeHours.Count == 0)
+        {
+            _isError = true;
+            _statusMessage = "Please configure the store hours first.";
+            return;
+        }
+
+        if (SaveScheduleAsync is null)
+        {
+            _isError = true;
+            _statusMessage = "Save action is not available.";
+            return;
+        }
+
+        var cfg = new ScheduleCfg
+        {
+            StoreHours = _storeHours.ToList(),
+            NailsAccommodationCapacities = _nailsCapacities.ToDictionary(x => x.Key, x => x.Value),
+            OtherServicesAccommodationCapacities = _otherCapacities.ToDictionary(x => x.Key, x => x.Value)
+        };
+
+        _isSaving = true;
+
+        try
+        {
+            await SaveScheduleAsync.Invoke(cfg);
+            _snapshot = SerializeCfg(cfg);
+            _hasPendingChanges = false;
+            _statusMessage = "Schedule configuration saved successfully.";
+        }
+        catch
+        {
+            _isError = true;
+            _statusMessage = "Failed to save schedule configuration.";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static int To24Hour(int hour, string period)
+    {
+        var normalized = hour % 12;
+        return string.Equals(period, "PM", StringComparison.OrdinalIgnoreCase) ? normalized + 12 : normalized;
+    }
+
+    private static string FormatHour(int hour24)
+    {
+        var normalized = ((hour24 % 24) + 24) % 24;
+        var period = normalized >= 12 ? "PM" : "AM";
+        var hour12 = normalized % 12;
+        if (hour12 == 0)
+            hour12 = 12;
+        return $"{hour12} {period}";
+    }
+
+    private static string SerializeCfg(ScheduleCfg? cfg)
+    {
+        if (cfg is null)
+            return string.Empty;
+
+        var storeHours = string.Join("|", cfg.StoreHours ?? []);
+        var nails = string.Join("|", (cfg.NailsAccommodationCapacities ?? []).OrderBy(x => x.Key).Select(x => $"{x.Key}:{x.Value}"));
+        var others = string.Join("|", (cfg.OtherServicesAccommodationCapacities ?? []).OrderBy(x => x.Key).Select(x => $"{x.Key}:{x.Value}"));
+
+        return $"{storeHours}__{nails}__{others}";
+    }
+}

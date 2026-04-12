@@ -254,7 +254,6 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public Func<string, BaseSvcStructure, Task>? SaveServiceAsync { get; set; }
     [Parameter] public Func<string, string, Task>? DeleteServiceAsync { get; set; }
-    [Parameter] public Func<Task>? RefreshServicesAsync { get; set; }
 
     private List<ServiceListItem> _services = [];
     public TimeSlots Slots = new();
