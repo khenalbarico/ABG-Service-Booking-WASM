@@ -185,6 +185,7 @@
 
 @code {
     [Parameter] public ClientRequest Request { get; set; } = new();
+    [Parameter] public ScheduleCfg   ScheduleCfg { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemove { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnCompleted { get; set; }
@@ -227,7 +228,7 @@
         info.ClientBookingId = $"{DateTime.Now:MMddyy}-{Random.Shared.Next(10000000, 99999999)}";
 
         var schedules    = await Db.GetAppointmentSchedulesAsync();
-        var availability = Request.ValidateClientReq(schedules);
+        var availability = Request.ValidateClientReq(schedules, ScheduleCfg);
 
         if (!availability.IsAvailable)
         {
@@ -255,8 +256,6 @@
             showConsentForm = true;
             return;
         }
-
-        await StartPaymentAsync();
     }
 
     private bool RequiresNailsRules()

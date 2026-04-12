@@ -1,5 +1,4 @@
 ﻿@page "/admin"
-@using WasmCore1.ApiModels
 @inject AuthState AuthState
 @inject NavigationManager NavigationManager
 @inject AppDb Db
@@ -29,7 +28,8 @@
                                     Footspa="@_footspa"
                                     IsLoading="@_isServicesLoading"
                                     SaveServiceAsync="@SaveServiceAsync"
-                                    DeleteServiceAsync="@DeleteServiceAsync" />
+                                    DeleteServiceAsync="@DeleteServiceAsync"
+                                    ScheduleCfg="_scheduleCfg"/>
                     break;
                 case "schedule":
                     <Admin_Schedule ScheduleCfg="@_scheduleCfg"

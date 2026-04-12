@@ -189,6 +189,7 @@
     [Parameter] public List<ApptSchedRec> AppointmentSchedules { get; set; } = [];
     [Parameter] public List<ClientService> CurrentBookings { get; set; } = [];
     [Parameter] public EventCallback<ClientService> OnBook { get; set; }
+    [Parameter] public ScheduleCfg ScheduleCfg { get; set; } = new();
 
     private Dictionary<string, DateTime> CurrentMonth = new();
     private Dictionary<string, DateTime> SelectedDates = new();
@@ -345,7 +346,7 @@
         if (IsAlreadyBookedInCurrentSelection(cardKey, date, timeSlot))
             return TimeSlotStatus.BookedByYou;
 
-        if (IsNailService(svc) && IsTimeSlotFull(date, timeSlot))
+        if (IsTimeSlotFull(svc, date, timeSlot))
             return TimeSlotStatus.Full;
 
         return TimeSlotStatus.Available;
@@ -391,22 +392,61 @@
         return GetCurrentBookingConflict(cardKey, date, timeSlot) is not null;
     }
 
-    bool IsTimeSlotFull(DateTime date, string timeSlot)
+    bool IsTimeSlotFull(BaseSvcStructure svc, DateTime date, string timeSlot)
     {
-        var startText = NormalizeStartTimeLabel(timeSlot);
-        if (!Capacities.NailSlotCapacities.TryGetValue(startText, out var capacity))
+        if (!TryGetCapacityForSlot(svc, timeSlot, out var capacity))
             return false;
 
         var slotDateTime = CombineDateAndTime(date, timeSlot);
+        var isNailService = IsNailService(svc);
 
         var bookedCount = AppointmentSchedules
             .Where(x => x.ServiceDate == slotDateTime)
-            .Where(IsNailBooking)
+            .Where(x => MatchesCapacityCategory(x, isNailService))
             .Select(x => x.ClientBookingId)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Count();
 
         return bookedCount >= capacity;
+    }
+
+    bool TryGetCapacityForSlot(BaseSvcStructure svc, string timeSlot, out int capacity)
+    {
+        capacity = 0;
+
+        var map = IsNailService(svc)
+            ? ScheduleCfg?.NailsAccommodationCapacities
+            : ScheduleCfg?.OtherServicesAccommodationCapacities;
+
+        if (map is null || map.Count == 0)
+            return false;
+
+        if (map.TryGetValue(timeSlot, out capacity))
+            return true;
+
+        var normalizedSelected = NormalizeTimeRangeLabel(timeSlot);
+
+        foreach (var kvp in map)
+        {
+            if (string.Equals(NormalizeTimeRangeLabel(kvp.Key), normalizedSelected, StringComparison.OrdinalIgnoreCase))
+            {
+                capacity = kvp.Value;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    bool MatchesCapacityCategory(ApptSchedRec record, bool isNailService)
+    {
+        if (record.Services is null || record.Services.Count == 0)
+            return true;
+
+        if (isNailService)
+            return record.Services.Any(IsNailServiceRecord);
+
+        return record.Services.Any(x => !IsNailServiceRecord(x));
     }
 
     bool IsNailService(BaseSvcStructure svc)
@@ -415,14 +455,10 @@
             || svc.Details.Contains("nail", StringComparison.OrdinalIgnoreCase);
     }
 
-    bool IsNailBooking(ApptSchedRec record)
+    bool IsNailServiceRecord(ApptSchedService service)
     {
-        if (record.Services is null || record.Services.Count == 0)
-            return true;
-
-        return record.Services.Any(x =>
-            (!string.IsNullOrWhiteSpace(x.ServiceName) && x.ServiceName.Contains("nail", StringComparison.OrdinalIgnoreCase)) ||
-            (!string.IsNullOrWhiteSpace(x.ServiceDetails) && x.ServiceDetails.Contains("nail", StringComparison.OrdinalIgnoreCase)));
+        return (!string.IsNullOrWhiteSpace(service.ServiceName) && service.ServiceName.Contains("nail", StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(service.ServiceDetails) && service.ServiceDetails.Contains("nail", StringComparison.OrdinalIgnoreCase));
     }
 
     DateTime CombineDateAndTime(DateTime date, string timeRange)
@@ -444,40 +480,66 @@
 
     string ExtractStartTimeText(string timeRange)
     {
-        if (string.IsNullOrWhiteSpace(timeRange))
-            return "12:00 AM";
-
         var normalized = timeRange.Trim().ToUpperInvariant();
-        var meridiemMatch = Regex.Match(normalized, @"\b(AM|PM)\b");
         var firstPart = normalized.Split('-')[0].Trim();
 
-        if (!Regex.IsMatch(firstPart, @"\b(AM|PM)\b") && meridiemMatch.Success)
-            firstPart = $"{firstPart} {meridiemMatch.Value}";
-
         if (Regex.IsMatch(firstPart, @"^\d{1,2}$"))
-            firstPart = $"{firstPart}:00 {(meridiemMatch.Success ? meridiemMatch.Value : "AM")}";
+            return $"{firstPart}:00 AM";
+
+        if (Regex.IsMatch(firstPart, @"^\d{1,2}\s*(AM|PM)$", RegexOptions.IgnoreCase))
+            return Regex.Replace(firstPart, @"^\s*(\d{1,2})\s*(AM|PM)\s*$", "$1:00 $2", RegexOptions.IgnoreCase);
 
         return firstPart;
     }
 
-    string NormalizeStartTimeLabel(string timeRange)
+    string NormalizeTimeRangeLabel(string timeRange)
     {
-        var startText = ExtractStartTimeText(timeRange);
+        var parts = timeRange.Split('-', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0)
+            return timeRange.Trim();
 
-        if (DateTime.TryParse(startText, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        var startRaw = parts[0];
+        var endRaw = parts.Length > 1 ? parts[1] : "";
+
+        var endMeridiemMatch = Regex.Match(endRaw, @"\b(AM|PM)\b", RegexOptions.IgnoreCase);
+        var startMeridiemMatch = Regex.Match(startRaw, @"\b(AM|PM)\b", RegexOptions.IgnoreCase);
+
+        if (!startMeridiemMatch.Success && endMeridiemMatch.Success)
+            startRaw = $"{startRaw} {endMeridiemMatch.Value}";
+
+        var startFormatted = NormalizeSingleTimeLabel(startRaw);
+        var endFormatted = NormalizeSingleTimeLabel(endRaw);
+
+        if (string.IsNullOrWhiteSpace(endFormatted))
+            return startFormatted;
+
+        return $"{startFormatted}-{endFormatted}";
+    }
+
+    string NormalizeSingleTimeLabel(string value)
+    {
+        var cleaned = Regex.Replace(value.Trim(), @"\s+", " ").ToUpperInvariant();
+
+        if (DateTime.TryParse(cleaned, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
             return parsed.ToString("h:mm tt", CultureInfo.InvariantCulture);
 
-        if (DateTime.TryParseExact(startText, new[] { "h tt", "hh tt", "h:mm tt", "hh:mm tt" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
+        if (DateTime.TryParseExact(cleaned, new[] { "h tt", "hh tt", "h:mm tt", "hh:mm tt" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsed))
             return parsed.ToString("h:mm tt", CultureInfo.InvariantCulture);
 
-        return startText;
+        if (Regex.IsMatch(cleaned, @"^\d{1,2}$"))
+            return $"{int.Parse(cleaned)}:00 AM";
+
+        if (Regex.IsMatch(cleaned, @"^\d{1,2}\s*(AM|PM)$", RegexOptions.IgnoreCase))
+        {
+            var match = Regex.Match(cleaned, @"^(\d{1,2})\s*(AM|PM)$", RegexOptions.IgnoreCase);
+            return $"{int.Parse(match.Groups[1].Value)}:00 {match.Groups[2].Value.ToUpperInvariant()}";
+        }
+
+        return cleaned;
     }
 
     string GetImageUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url))
-            return "";
-
         if (!url.Contains("drive.google.com", StringComparison.OrdinalIgnoreCase))
             return url;
 

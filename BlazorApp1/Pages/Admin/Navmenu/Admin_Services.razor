@@ -1,4 +1,5 @@
-﻿<div class="services-page">
+﻿@using WasmCore1.Utilities
+<div class="services-page">
     <div class="services-header">
         <div>
             <div class="page-badge">Service Manager</div>
@@ -175,12 +176,12 @@
                     <div class="picker-title picker-title-row">
                         <span>Select Time Slots</span>
                         <button type="button" class="quick-fill-btn" @onclick="ApplyStoreHours">
-                            Use Store Hours (10 AM - 9 PM)
+                            Use Store Hours
                         </button>
                     </div>
 
                     <div class="chip-select-wrap">
-                        @foreach (var time in Slots.AllTimeSlots)
+                        @foreach (var time in StoreHours)
                         {
                             <button type="button"
                                     class="choice-chip alt @(IsTimeSelected(time) ? "selected" : "")"
@@ -254,9 +255,10 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public Func<string, BaseSvcStructure, Task>? SaveServiceAsync { get; set; }
     [Parameter] public Func<string, string, Task>? DeleteServiceAsync { get; set; }
+    [Parameter] public ScheduleCfg ScheduleCfg { get; set; } = new();
 
     private List<ServiceListItem> _services = [];
-    public TimeSlots Slots = new();
+    public Days Slots = new();
     private bool _showModal;
     private bool _isEditMode;
     private bool _isSaving;
@@ -276,6 +278,9 @@
 
     private bool IsNailsCategorySelected =>
         string.Equals(_form.ServiceName, "Nails", StringComparison.OrdinalIgnoreCase);
+
+    private List<string> StoreHours =>
+        ScheduleCfg?.StoreHours ?? [];
 
     private IEnumerable<ServiceListItem> FilteredServices =>
         _services.Where(x =>
@@ -393,7 +398,7 @@
 
     private void ApplyStoreHours()
     {
-        _selectedTimeSlots = Slots.AllTimeSlots.ToList();
+        _selectedTimeSlots = StoreHours.ToList();
     }
 
     private void ClearFilters()
@@ -434,9 +439,11 @@
         {
             _isSaving = true;
 
+            var category = _form.ServiceName.NormalizeCategory();
+
             var uid = _isEditMode
                 ? _form.ServiceUid
-                : Guid.NewGuid().ToString("N");
+                : category.GenerateUid();
 
             var service = new BaseSvcStructure
             {
@@ -452,7 +459,7 @@
                 }
             };
 
-            await SaveServiceAsync.Invoke(_form.ServiceName, service);
+            await SaveServiceAsync.Invoke(category, service);
             CloseModal();
         }
         catch (Exception ex)
@@ -511,7 +518,7 @@
             .Select(design => new BaseDesign
             {
                 DesignName = design.ToString(),
-                ImageUrls  = ImageUrls.TryGetValue(design, out var urls)
+                ImageUrls = ImageUrls.TryGetValue(design, out var urls)
                     ? urls.ToList()
                     : []
             })

@@ -27,6 +27,7 @@
                         BookedUids="_clientRequest.ClientServices.Select(x => x.ServiceUid).ToList()"
                         AppointmentSchedules="_appointmentSchedules"
                         CurrentBookings="_clientRequest.ClientServices"
+                        ScheduleCfg="_scheduleCfg"
                         OnBook="HandleBook" />
 
         <ServiceSection @key="@($" lashes-{_uiVersion}")"
@@ -35,6 +36,7 @@
                         BookedUids="_clientRequest.ClientServices.Select(x => x.ServiceUid).ToList()"
                         AppointmentSchedules="_appointmentSchedules"
                         CurrentBookings="_clientRequest.ClientServices"
+                        ScheduleCfg="_scheduleCfg"
                         OnBook="HandleBook" />
 
         <ServiceSection @key="@($" eyebrows-{_uiVersion}")"
@@ -43,6 +45,7 @@
                         BookedUids="_clientRequest.ClientServices.Select(x => x.ServiceUid).ToList()"
                         AppointmentSchedules="_appointmentSchedules"
                         CurrentBookings="_clientRequest.ClientServices"
+                        ScheduleCfg="_scheduleCfg"
                         OnBook="HandleBook" />
 
         <ServiceSection @key="@($" footspa-{_uiVersion}")"
@@ -51,6 +54,7 @@
                         BookedUids="_clientRequest.ClientServices.Select(x => x.ServiceUid).ToList()"
                         AppointmentSchedules="_appointmentSchedules"
                         CurrentBookings="_clientRequest.ClientServices"
+                        ScheduleCfg="_scheduleCfg"
                         OnBook="HandleBook" />
     }
 
@@ -67,23 +71,26 @@
                                  Request="_clientRequest"
                                  OnRemove="RemoveService"
                                  OnClose="ToggleCheckout"
-                                 OnCompleted="HandleCompleted" />
+                                 OnCompleted="HandleCompleted"
+                                 ScheduleCfg="_scheduleCfg"/>
             </div>
         </div>
     }
 </div>
 
 @code {
-    private ServiceCollectionResp? _services;
-    private List<ApptSchedRec> _appointmentSchedules = new();
-    private ClientRequest _clientRequest = new();
-    private bool showCheckout;
-    private int _uiVersion;
+    ServiceCollectionResp? _services;
+    List<ApptSchedRec> _appointmentSchedules = new();
+    ClientRequest _clientRequest = new();
+    ScheduleCfg _scheduleCfg = new();
+    bool showCheckout;
+    int _uiVersion;
 
     protected override async Task OnInitializedAsync()
     {
         _services             = await Db.GetServicesAsync();
         _appointmentSchedules = await Db.GetAppointmentSchedulesAsync();
+        _scheduleCfg          = await Db.GetScheduleCfgAsync();
     }
 
     private void HandleBook(ClientService svc)
@@ -111,6 +118,7 @@
         showCheckout = false;
         _uiVersion++;
         StateHasChanged();
+
         return Task.CompletedTask;
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using ToolsLib1.ClientModels.Schedules;
+using WasmCore1.ApiModels;
 using WasmCore1.Models.Client;
 using WasmCore1.Models.Schedules;
 
@@ -8,45 +9,43 @@ namespace WasmCore1.Algorithms;
 public static class SlotChecker
 {
     public static SlotCheckRes ValidateClientReq(
-           this   ClientRequest req,
-           List<ApptSchedRec>   schedules)
+        this ClientRequest      req,
+             List<ApptSchedRec> schedules,
+             ScheduleCfg        cfg)
     {
-        var groupedServices = (req.ClientServices ?? [])
+        var grouped = (req.ClientServices ?? [])
             .GroupBy(x => x.ServiceDate);
 
-        foreach (var group in groupedServices)
+        foreach (var g in grouped)
         {
-            var requestedServices = group.ToList();
+            var hasNail = g.Any(x => x.IsNailService());
 
-            if (!requestedServices.Any(x => x.IsNailService()))
+            var timeKey = g.Key.ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+            var map = hasNail
+                ? cfg.NailsAccommodationCapacities
+                : cfg.OtherServicesAccommodationCapacities;
+
+            if (map is null || !map.TryGetValue(timeKey, out var capacity))
                 continue;
 
-            var normalizedTime = group.Key.ToString("h:mm tt", CultureInfo.InvariantCulture);
-
-            if (!Capacities.NailSlotCapacities.TryGetValue(normalizedTime, out var capacity))
-                continue;
-
-            var bookedCount = schedules
-                .Where(x => x.ServiceDate == group.Key)
-                .Where(x => x.IsNailBooking())
+            var count = schedules
+                .Where(x => x.ServiceDate == g.Key)
+                .Where(x => hasNail ? x.IsNailBooking() : !x.IsNailBooking())
                 .Select(x => x.ClientBookingId)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Count();
 
-            if (bookedCount >= capacity)
+            if (count >= capacity)
             {
                 return new SlotCheckRes
                 {
                     IsAvailable = false,
-                    Message = $"Sorry, the slot on {group.Key:MMMM dd, yyyy} at {group.Key:hh:mm tt} is already full. Please choose another schedule."
+                    Message = $"Sorry, the slot on {g.Key:MMMM dd, yyyy} at {g.Key:hh:mm tt} is already full. Please choose another schedule."
                 };
             }
         }
 
-        return new SlotCheckRes
-        {
-            IsAvailable = true,
-            Message = ""
-        };
+        return new SlotCheckRes { IsAvailable = true };
     }
 }
