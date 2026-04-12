@@ -214,26 +214,35 @@ else
 }
 
 <style>
+    html, body {
+        height: 100%;
+        overflow: hidden;
+    }
+
     .admin-shell {
-        min-height: 100vh;
+        height: 100vh;
         display: grid;
         grid-template-columns: 280px 1fr;
         background: radial-gradient(circle at top left, rgba(90, 58, 180, 0.28), transparent 28%), radial-gradient(circle at bottom right, rgba(0, 180, 255, 0.18), transparent 30%), linear-gradient(135deg, #070b16 0%, #0d1324 45%, #111a31 100%);
         color: #eef2ff;
+        overflow: hidden;
     }
 
     .admin-sidebar {
-        min-height: 100vh;
+        height: 100vh;
         border-right: 1px solid rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(14px);
         background: linear-gradient(180deg, rgba(14, 18, 33, 0.92) 0%, rgba(10, 14, 26, 0.82) 100%);
-        position: sticky;
-        top: 0;
+        position: relative;
+        overflow: hidden;
     }
 
     .admin-content {
         min-width: 0;
+        height: 100vh;
         padding: 24px;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .admin-auth-guard {
@@ -295,16 +304,25 @@ else
     }
 
     @@media (max-width: 1080px) {
+        html, body {
+            overflow: auto;
+        }
+
         .admin-shell {
+            height: auto;
+            min-height: 100vh;
             grid-template-columns: 1fr;
+            overflow: visible;
         }
 
         .admin-sidebar {
+            height: auto;
             min-height: auto;
-            position: relative;
         }
 
         .admin-content {
+            height: auto;
+            overflow: visible;
             padding: 20px;
         }
     }
