@@ -1,11 +1,11 @@
 ﻿@page "/admin"
-@inject AdminAuthState    AdminAuthState
+@inject AuthState         AuthState
 @inject NavigationManager NavigationManager
 @inject AppDb             Db
 
 <PageTitle>ABG Studios Admin</PageTitle>
 
-@if (AdminAuthState.IsAuthenticated)
+@if (AuthState.IsAuthenticated)
 {
     <div class="admin-shell">
         <div class="admin-sidebar">

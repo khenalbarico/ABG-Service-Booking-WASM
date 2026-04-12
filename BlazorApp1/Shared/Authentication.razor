@@ -1,5 +1,7 @@
 ﻿@inject NavigationManager NavigationManager
 @inject AppAuth           Auth
+@inject AuthState         AuthState
+
 @if (IsOpen)
 {
     <div class="auth-backdrop" @onclick="Close">
@@ -43,7 +45,6 @@
     bool           _isLoading;
     string         _errorMessage  = string.Empty;
     LoginModel     loginModel     = new();
-    AdminAuthState adminAuthState = new();
 
     [Parameter] public EventCallback OnAuthenticated { get; set; }
 
@@ -71,12 +72,13 @@
 
         try
         {
-            var credential = await Auth.LoginAsync(loginModel.Email, loginModel.Password);
+            var resp = await Auth.LoginAsync(loginModel.Email, loginModel.Password);
 
-            if (credential is not null)
+            if (resp.Uid is not "")
             {
-                adminAuthState.IsAuthenticated = true;
-                adminAuthState.Email = loginModel.Email;
+                AuthState.Email           = resp.Email;
+                AuthState.IsAuthenticated = true;
+                AuthState.Uid             = resp.Uid;
 
                 IsOpen = false;
 
