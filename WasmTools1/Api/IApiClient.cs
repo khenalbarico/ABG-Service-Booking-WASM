@@ -2,7 +2,20 @@
 
 public interface IApiClient
 {
-    Task<T> GetAsync<T>(string className, string methodName);
-    Task<T> Submit<T>(string className, string methodName, T data);
-    Task PostAsync<T>(string className, string methodName, T data);
+    Task<T> GetAsync<T>(
+           string            className,
+           string            methodName,
+           CancellationToken ct      = default);
+
+    Task<T> SubmitAsync<T>(
+          string            className,
+          string            methodName,
+          object?           payload = null,
+          CancellationToken ct      = default);
+
+    Task PostAsync(
+           string            className,
+           string            methodName,
+           object?           payload = null,
+           CancellationToken ct      = default);
 }

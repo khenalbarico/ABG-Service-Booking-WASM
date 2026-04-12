@@ -1,6 +1,7 @@
 ﻿@page "/admin"
 @inject AdminAuthState    AdminAuthState
 @inject NavigationManager NavigationManager
+@inject AppDb             Db
 
 <PageTitle>ABG Studios Admin</PageTitle>
 
@@ -78,86 +79,86 @@ else
 
     private async Task LoadRequestsAsync()
     {
-        // _isRequestsLoading = true;
+        _isRequestsLoading = true;
 
-        // try
-        // {
-        //     var requests = await AppDbOperator.GetClientRequestsAsync();
+        try
+        {
+            var requests = await Db.GetClientRequestsAsync();
 
-        //     _requests = requests
-        //         .Where(x => x.ClientInformation is not null)
-        //         .OrderByDescending(x => x.ClientInformation.BookingDate)
-        //         .ThenByDescending(x => x.ClientInformation.ClientBookingId)
-        //         .ToList();
-        // }
-        // catch
-        // {
-        //     _requests = [];
-        // }
-        // finally
-        // {
-        //     _isRequestsLoading = false;
-        //     await InvokeAsync(StateHasChanged);
-        // }
+            _requests = requests
+                .Where(x => x.ClientInformation is not null)
+                .OrderByDescending(x => x.ClientInformation.BookingDate)
+                .ThenByDescending(x => x.ClientInformation.ClientBookingId)
+                .ToList();
+        }
+        catch
+        {
+            _requests = [];
+        }
+        finally
+        {
+            _isRequestsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task LoadServicesAsync()
     {
-        // _isServicesLoading = true;
+        _isServicesLoading = true;
 
-        // try
-        // {
-        //     var response = await AppDbOperator.GetServicesAsync();
+        try
+        {
+            var response = await Db.GetServicesAsync();
 
-        //     _nails = (response.Nails ?? [])
-        //         .Select(x => (BaseSvcStructure)x)
-        //         .OrderBy(x => x.Details)
-        //         .ToList();
+            _nails = (response.Nails ?? [])
+                .Select(x => (BaseSvcStructure)x)
+                .OrderBy(x => x.Details)
+                .ToList();
 
-        //     _lashes = (response.Lashes ?? [])
-        //         .Select(x => (BaseSvcStructure)x)
-        //         .OrderBy(x => x.Details)
-        //         .ToList();
+            _lashes = (response.Lashes ?? [])
+                .Select(x => (BaseSvcStructure)x)
+                .OrderBy(x => x.Details)
+                .ToList();
 
-        //     _eyebrows = (response.Eyebrows ?? [])
-        //         .Select(x => (BaseSvcStructure)x)
-        //         .OrderBy(x => x.Details)
-        //         .ToList();
+            _eyebrows = (response.Eyebrows ?? [])
+                .Select(x => (BaseSvcStructure)x)
+                .OrderBy(x => x.Details)
+                .ToList();
 
-        //     _footspa = (response.Footspa ?? [])
-        //         .Select(x => (BaseSvcStructure)x)
-        //         .OrderBy(x => x.Details)
-        //         .ToList();
-        // }
-        // catch
-        // {
-        //     _nails = [];
-        //     _lashes = [];
-        //     _eyebrows = [];
-        //     _footspa = [];
-        // }
-        // finally
-        // {
-        //     _isServicesLoading = false;
-        //     await InvokeAsync(StateHasChanged);
-        // }
+            _footspa = (response.Footspa ?? [])
+                .Select(x => (BaseSvcStructure)x)
+                .OrderBy(x => x.Details)
+                .ToList();
+        }
+        catch
+        {
+            _nails = [];
+            _lashes = [];
+            _eyebrows = [];
+            _footspa = [];
+        }
+        finally
+        {
+            _isServicesLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task UpdateRequestStatusAsync(ClientRequest request)
     {
-        // await AppDbOperator.PostClientRequestAsync(request);
+        await Db.PostClientRequestAsync(request);
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task SaveServiceAsync(string category, BaseSvcStructure service)
     {
-        // await AppDbOperator.SaveServiceAsync(category, service);
+        await Db.SaveServiceAsync(category, service);
         await LoadServicesAsync();
     }
 
     private async Task DeleteServiceAsync(string category, string uid)
     {
-        // await AppDbOperator.DeleteServiceAsync(category, uid);
+        await Db.DeleteServiceAsync(category, uid);
         await LoadServicesAsync();
     }
 

@@ -1,4 +1,8 @@
-﻿<div class="checkout-container">
+﻿@inject AppDb      Db
+@inject AppPayment Payment
+@inject AppEmailer Emailer
+
+<div class="checkout-container">
 
     @if (isLoading)
     {
@@ -215,43 +219,44 @@
 
     async Task Submit()
     {
-        // consumerError = null;
+        consumerError = null;
 
-        // var info = Request.ClientInformation;
+        var info = Request.ClientInformation;
 
-        // info.BookingDate = DateTime.Now;
-        // info.ClientBookingId = $"{DateTime.Now:MMddyy}-{Random.Shared.Next(10000000, 99999999)}";
+        info.BookingDate     = DateTime.Now;
+        info.ClientBookingId = $"{DateTime.Now:MMddyy}-{Random.Shared.Next(10000000, 99999999)}";
 
-        // var availability = await AppDbOperator.ValidateClientRequestAvailabilityAsync(Request);
+        var schedules    = await Db.GetAppointmentSchedulesAsync();
+        var availability = Request.ValidateClientReq(schedules);
 
-        // if (!availability.IsAvailable)
-        // {
-        //     consumerError = availability.Message;
-        //     await OnSchedulesChanged.InvokeAsync();
-        //     await InvokeAsync(StateHasChanged);
-        //     return;
-        // }
+        if (!availability.IsAvailable)
+        {
+            consumerError = availability.Message;
+            await OnSchedulesChanged.InvokeAsync();
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
 
-        // var needsNailsRules  = RequiresNailsRules();
-        // var needsConsentForm = RequiresConsentForm();
+        var needsNailsRules  = RequiresNailsRules();
+        var needsConsentForm = RequiresConsentForm();
 
-        // showForm = false;
+        showForm = false;
 
-        // if (needsNailsRules && !nailsRulesAccepted)
-        // {
-        //     showNailsRules = true;
-        //     showConsentForm = false;
-        //     return;
-        // }
+        if (needsNailsRules && !nailsRulesAccepted)
+        {
+            showNailsRules = true;
+            showConsentForm = false;
+            return;
+        }
 
-        // if (needsConsentForm && !consentAccepted)
-        // {
-        //     showNailsRules = false;
-        //     showConsentForm = true;
-        //     return;
-        // }
+        if (needsConsentForm && !consentAccepted)
+        {
+            showNailsRules = false;
+            showConsentForm = true;
+            return;
+        }
 
-        // await StartPaymentAsync();
+        await StartPaymentAsync();
     }
 
     private bool RequiresNailsRules()
@@ -318,57 +323,57 @@
 
     private async Task StartPaymentAsync()
     {
-        // isLoading = true;
-        // StateHasChanged();
+        isLoading = true;
+        StateHasChanged();
 
-        // var result = await ToolPaymentApi.CreateQrphChargeAsync(Request);
+        var result = await Payment.CreateQrphChargeAsync(Request);
 
-        // paymentIntentId = result.PaymentIntentId;
-        // qrImageUrl = result.QrImageUrl;
+        paymentIntentId = result.PaymentIntentId;
+        qrImageUrl = result.QrImageUrl;
 
-        // isLoading = false;
-        // showQr = true;
+        isLoading = false;
+        showQr = true;
 
-        // pollCts = new CancellationTokenSource();
-        // _ = PollPaymentStatus(pollCts.Token);
+        pollCts = new CancellationTokenSource();
+        _ = PollPaymentStatus(pollCts.Token);
     }
 
     private async Task PollPaymentStatus(CancellationToken ct)
     {
-        // try
-        // {
-        //     while (!ct.IsCancellationRequested)
-        //     {
-        //         var status = await ToolPaymentApi.GetPaymentIntentStatusAsync(paymentIntentId!);
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                var status = await Payment.GetPaymentIntentStatusAsync(paymentIntentId!);
 
-        //         if (status == "succeeded")
-        //         {
-        //             pollCts?.Cancel();
+                if (status == "succeeded")
+                {
+                    pollCts?.Cancel();
 
-        //             Request.Status = ClientStatus.Paid;
+                    Request.Status = ClientStatus.Paid;
 
-        //             await AppDbOperator.PostClientRequestAsync(Request);
-        //             await AppEmailer.SendEmailAsync(Request);
-        //             await OnSchedulesChanged.InvokeAsync();
+                    await Db.PostClientRequestAsync(Request);
+                    await Emailer.SendEmailAsync(Request);
+                    await OnSchedulesChanged.InvokeAsync();
 
-        //             showForm = false;
-        //             showQr = false;
-        //             showNailsRules = false;
-        //             showConsentForm = false;
-        //             paymentIntentId = null;
-        //             qrImageUrl = null;
-        //             showSuccess = true;
+                    showForm = false;
+                    showQr = false;
+                    showNailsRules = false;
+                    showConsentForm = false;
+                    paymentIntentId = null;
+                    qrImageUrl = null;
+                    showSuccess = true;
 
-        //             await InvokeAsync(StateHasChanged);
-        //             break;
-        //         }
+                    await InvokeAsync(StateHasChanged);
+                    break;
+                }
 
-        //         await Task.Delay(3000, ct);
-        //     }
-        // }
-        // catch (TaskCanceledException)
-        // {
-        // }
+                await Task.Delay(3000, ct);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+        }
     }
 
     private void CancelPayment()

@@ -1,5 +1,5 @@
 ﻿@inject NavigationManager NavigationManager
-
+@inject AppAuth           Auth
 @if (IsOpen)
 {
     <div class="auth-backdrop" @onclick="Close">
@@ -66,38 +66,38 @@
 
     private async Task HandleLoginAsync()
     {
-        // _isLoading = true;
-        // _errorMessage = string.Empty;
+        _isLoading = true;
+        _errorMessage = string.Empty;
 
-        // try
-        // {
-        //     var credential = await AppAuthentication.LoginAsync(loginModel.Email, loginModel.Password);
+        try
+        {
+            var credential = await Auth.LoginAsync(loginModel.Email, loginModel.Password);
 
-        //     if (credential is not null)
-        //     {
-        //         adminAuthState.IsAuthenticated = true;
-        //         adminAuthState.Email = loginModel.Email;
+            if (credential is not null)
+            {
+                adminAuthState.IsAuthenticated = true;
+                adminAuthState.Email = loginModel.Email;
 
-        //         IsOpen = false;
+                IsOpen = false;
 
-        //         if (OnAuthenticated.HasDelegate)
-        //             await OnAuthenticated.InvokeAsync();
+                if (OnAuthenticated.HasDelegate)
+                    await OnAuthenticated.InvokeAsync();
 
-        //         NavigationManager.NavigateTo("/admin", false);
-        //     }
-        //     else
-        //     {
-        //         _errorMessage = "Invalid login credentials.";
-        //     }
-        // }
-        // catch (Exception ex)
-        // {
-        //     _errorMessage = ex.Message;
-        // }
-        // finally
-        // {
-        //     _isLoading = false;
-        //     StateHasChanged();
-        // }
+                NavigationManager.NavigateTo("/admin", false);
+            }
+            else
+            {
+                _errorMessage = "Invalid login credentials.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 }

@@ -1,5 +1,17 @@
-﻿namespace WasmCore1;
+﻿using Microsoft.Extensions.DependencyInjection;
+using WasmCore1.Services;
+using WasmTools1.Api;
 
-public class SvcRegistry
+namespace WasmCore1;
+
+public static class SvcRegistry
 {
+    public static void RegisterSvc(this IServiceCollection svc)
+    {
+        svc.AddScoped<IApiClient, ApiClient>();
+        svc.AddScoped<AppDb>();
+        svc.AddScoped<AppEmailer>();
+        svc.AddScoped<AppPayment>();
+        svc.AddScoped<AppAuth>();
+    }
 }
