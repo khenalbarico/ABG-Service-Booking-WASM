@@ -28,6 +28,7 @@ public partial class ServiceCheckout : IDisposable
     CancellationTokenSource? pollCts;
 
     string? consumerError;
+    bool    showConfirmModal;
 
     private async Task Remove(string uid)
         => await OnRemove.InvokeAsync(uid);
@@ -39,6 +40,21 @@ public partial class ServiceCheckout : IDisposable
     {
         consumerError = null;
         showForm = false;
+    }
+
+    private void OpenConfirmModal()
+    {
+        consumerError    = string.Empty;
+        showConfirmModal = true;
+    }
+
+    private void CloseConfirmModal()
+        => showConfirmModal = false;
+
+    private async Task ConfirmProceed()
+    {
+        showConfirmModal = false;
+        await Submit();
     }
 
     private decimal GetTotalAmount()

@@ -14,6 +14,74 @@
         </div>
     }
 
+    @if (showConfirmModal)
+    {
+        <div class="modal-overlay">
+            <div class="confirm-modal fade-in">
+                <div class="checkout-header">
+                    <div class="checkout-badge">Confirm Details</div>
+                    <h3>Are you sure these details are correct?</h3>
+                    <p>Please review your information carefully before proceeding to QR payment.</p>
+                </div>
+
+                <div class="confirm-section">
+                    <div class="confirm-block">
+                        <div class="confirm-title">Client Information</div>
+                        <div class="confirm-grid">
+                            <div class="confirm-item">
+                                <span>First Name</span>
+                                <strong>@Request.ClientInformation.FirstName</strong>
+                            </div>
+                            <div class="confirm-item">
+                                <span>Last Name</span>
+                                <strong>@Request.ClientInformation.LastName</strong>
+                            </div>
+                            <div class="confirm-item">
+                                <span>Email</span>
+                                <strong>@Request.ClientInformation.Email</strong>
+                            </div>
+                            <div class="confirm-item">
+                                <span>Contact Number</span>
+                                <strong>@Request.ClientInformation.ContactNumber</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="confirm-block">
+                        <div class="confirm-title">Selected Services</div>
+                        <div class="confirm-service-list">
+                            @foreach (var s in Request.ClientServices)
+                            {
+                                <div class="confirm-service-card">
+                                    <div class="confirm-service-name">@s.ServiceName</div>
+                                    <div class="confirm-service-details">@s.ServiceDetails</div>
+                                    <div class="confirm-service-meta">
+                                        <span>@GetBranchDisplayName(s.Branch)</span>
+                                        <span>@s.ServiceDate.ToString("MMMM dd, yyyy")</span>
+                                        <span>@s.ServiceDate.ToString("hh:mm tt")</span>
+                                    </div>
+                                    <div class="confirm-service-price">₱@s.ServiceCost</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="summary-card">
+                        <div class="summary-row">
+                            <span>Total Amount</span>
+                            <strong>₱@GetTotalAmount()</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="primary-btn" @onclick="ConfirmProceed">Yes, Proceed</button>
+                    <button type="button" class="secondary-btn" @onclick="CloseConfirmModal">Edit Details</button>
+                </div>
+            </div>
+        </div>
+    }
+
     @if (!showForm && !showSuccess && !showQr && !showNailsRules && !showConsentForm)
     {
         <div class="checkout-header fade-in">
@@ -77,7 +145,7 @@
                 <p>Please complete the details below to continue to payment</p>
             </div>
 
-            <EditForm Model="Request.ClientInformation" OnValidSubmit="Submit">
+            <EditForm Model="Request.ClientInformation" OnValidSubmit="OpenConfirmModal">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="validation-summary" />
 
