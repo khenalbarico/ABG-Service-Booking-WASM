@@ -127,16 +127,16 @@ public partial class ServiceCheckout : IDisposable
         isLoading = true;
         StateHasChanged();
 
-        await Db.PostClientRequestAsync(Request);
+                     await Db.ValidateAvailabilityAsync(Request);
         var result = await Payment.CreateQrphChargeAsync(Request);
 
         paymentIntentId = result.PaymentIntentId;
-        qrImageUrl = result.QrImageUrl;
+        qrImageUrl      = result.QrImageUrl;
 
         isLoading = false;
-        showQr = true;
+        showQr    = true;
 
-        pollCts = new CancellationTokenSource();
+        pollCts   = new CancellationTokenSource();
         _ = PollPaymentStatus(pollCts.Token);
     }
 
@@ -153,7 +153,7 @@ public partial class ServiceCheckout : IDisposable
                     pollCts?.Cancel();
 
                     Request.Status = ClientStatus.Paid;
-
+                    await Db.PostClientRequestAsync(Request);
                     await Emailer.SendEmailAsync(Request);
                     await OnSchedulesChanged.InvokeAsync();
 

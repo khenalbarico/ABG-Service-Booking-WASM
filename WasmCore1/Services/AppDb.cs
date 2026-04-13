@@ -120,4 +120,17 @@ public class AppDb (IApiClient _apiClient, AppGlobalError _globalError)
             throw;
         }
     }
+
+    public async Task ValidateAvailabilityAsync(ClientRequest req, CancellationToken ct = default)
+    {
+        try
+        {
+            await _apiClient.PostAsync("IBookingCapacity", "ValidateAvailabilityAsync", req, ct);
+        }
+        catch (Exception ex)
+        {
+            await _globalError.ShowAsync(ex);
+            throw;
+        }
+    }
 }
