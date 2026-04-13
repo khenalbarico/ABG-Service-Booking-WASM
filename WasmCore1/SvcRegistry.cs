@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using WasmCore1.ApiModels;
 using WasmCore1.Models.States;
 using WasmCore1.Services;
 using WasmTools1.Api;
@@ -16,5 +15,6 @@ public static class SvcRegistry
         svc.AddScoped<AppPayment>();
         svc.AddScoped<AppAuth>();
         svc.AddScoped<AuthState>();
+        svc.AddScoped<AppGlobalError>();
     }
 }

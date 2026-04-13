@@ -4,7 +4,7 @@ using WasmTools1.Api;
 
 namespace WasmCore1.Services;
 
-public class AppPayment (IApiClient _apiClient)
+public class AppPayment (IApiClient _apiClient, AppGlobalError _globalError)
 {
     public async Task<PaymongoQrphChargeResult> CreateQrphChargeAsync(ClientRequest req, CancellationToken ct = default)
     {
@@ -16,7 +16,8 @@ public class AppPayment (IApiClient _apiClient)
         }
         catch (Exception ex)
         {
-            throw new Exception(ex.Message);
+            await _globalError.ShowAsync(ex);
+            throw;
         }
     }
     public async Task<string> GetPaymentIntentStatusAsync(string paymentIntentId, CancellationToken ct = default)
@@ -29,7 +30,8 @@ public class AppPayment (IApiClient _apiClient)
         }
         catch (Exception ex)
         {
-            throw new Exception(ex.Message);
+            await _globalError.ShowAsync(ex);
+            throw;
         }
     }
 }
