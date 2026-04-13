@@ -10,5 +10,5 @@ public class AppPayment (IApiClient _apiClient)
     => await _apiClient.SubmitAsync<PaymongoQrphChargeResult>("IToolPaymentApi", "CreateQrphChargeAsync", new { req }, ct);
 
     public async Task<string> GetPaymentIntentStatusAsync(string paymentIntentId, CancellationToken ct = default)
-    => await _apiClient.SubmitAsync<string>("IToolPaymentApi", "GetPaymentIntentStatusAsync", paymentIntentId, ct);
+    => await _apiClient.SubmitAsync<string>("IToolPaymentApi", "GetPaymentIntentStatusAsync", new { paymentIntentId }, ct);
 }

@@ -599,13 +599,13 @@
 
         var data = new ClientService
         {
-            ServiceUid = cardKey,
-            ServiceName = Title,
-            ServiceDesign = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
+            ServiceUid     = cardKey,
+            ServiceName    = Title,
+            ServiceDesign  = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
             ServiceDetails = svc.Details,
-            ServiceCost = svc.Cost,
-            Branch = selectedBranch.Value,
-            ServiceDate = combinedDate
+            ServiceCost    = svc.Cost,
+            Branch         = selectedBranch.Value,
+            ServiceDate    = combinedDate
         };
 
         await OnBook.InvokeAsync(data);

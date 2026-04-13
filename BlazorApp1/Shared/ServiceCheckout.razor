@@ -185,7 +185,6 @@
 
 @code {
     [Parameter] public ClientRequest Request { get; set; } = new();
-    [Parameter] public ScheduleCfg   ScheduleCfg { get; set; } = new();
     [Parameter] public EventCallback<string> OnRemove { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback OnCompleted { get; set; }
@@ -227,18 +226,7 @@
         info.BookingDate     = DateTime.Now;
         info.ClientBookingId = $"{DateTime.Now:MMddyy}-{Random.Shared.Next(10000000, 99999999)}";
 
-        var schedules    = await Db.GetAppointmentSchedulesAsync();
-        var availability = Request.ValidateClientReq(schedules, ScheduleCfg);
-
-        if (!availability.IsAvailable)
-        {
-            consumerError = availability.Message;
-            await OnSchedulesChanged.InvokeAsync();
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
-        var needsNailsRules  = RequiresNailsRules();
+        var needsNailsRules = RequiresNailsRules();
         var needsConsentForm = RequiresConsentForm();
 
         showForm = false;
@@ -328,10 +316,10 @@
         var result = await Payment.CreateQrphChargeAsync(Request);
 
         paymentIntentId = result.PaymentIntentId;
-        qrImageUrl = result.QrImageUrl;
+        qrImageUrl      = result.QrImageUrl;
 
         isLoading = false;
-        showQr = true;
+        showQr    = true;
 
         pollCts = new CancellationTokenSource();
         _ = PollPaymentStatus(pollCts.Token);
