@@ -289,6 +289,18 @@
         color: var(--text-muted);
     }
 
+.email-input {
+    border-color: rgba(255, 193, 7, 0.35);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)), var(--input-bg);
+}
+
+.input-hint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    padding: 2px 2px 0;
+}
+
 .validation-summary {
     color: var(--text-primary);
     font-size: 13px;
@@ -343,6 +355,70 @@
     .form-actions .secondary-btn {
         flex: 1;
         width: 100%;
+    }
+
+.email-reminder-card,
+.confirm-alert,
+.success-message-card {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid var(--border-soft);
+    box-sizing: border-box;
+}
+
+.email-reminder-card,
+.confirm-alert {
+    background: linear-gradient(135deg, rgba(255, 204, 102, 0.14), rgba(255, 255, 255, 0.02));
+}
+
+.success-message-card {
+    max-width: 560px;
+    background: linear-gradient(135deg, rgba(100, 255, 180, 0.14), rgba(255, 255, 255, 0.02));
+}
+
+.email-reminder-icon,
+.confirm-alert-icon,
+.success-message-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-main);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.email-reminder-content,
+.confirm-alert-text,
+.success-message-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+    .email-reminder-content strong,
+    .confirm-alert-text strong,
+    .success-message-content strong {
+        color: var(--text-primary);
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .email-reminder-content span,
+    .confirm-alert-text span,
+    .success-message-content span {
+        color: var(--text-secondary);
+        font-size: 13px;
+        line-height: 1.6;
     }
 
 .qr-section {
@@ -400,7 +476,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     text-align: center;
     padding: 10px 0;
     width: 100%;
@@ -418,6 +494,10 @@
     color: var(--success-text);
     font-size: 34px;
     font-weight: 900;
+}
+
+.success-badge {
+    background: rgba(60, 180, 120, 0.14);
 }
 
 .success-section h2 {
@@ -583,6 +663,11 @@
         word-break: break-word;
     }
 
+.confirm-item-email {
+    border-color: rgba(255, 193, 7, 0.35);
+    box-shadow: 0 0 0 1px rgba(255, 193, 7, 0.12) inset;
+}
+
 .confirm-service-list {
     display: flex;
     flex-direction: column;
@@ -633,6 +718,35 @@
     font-size: 15px;
     font-weight: 800;
     color: var(--text-primary);
+}
+
+.qr-timer-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: -4px;
+}
+
+.qr-timer-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.qr-timer {
+    min-width: 110px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-align: center;
 }
 
 @keyframes spin {
@@ -737,6 +851,13 @@
     .qr-image {
         width: 190px;
     }
+
+    .email-reminder-card,
+    .confirm-alert,
+    .success-message-card {
+        padding: 14px;
+        border-radius: 16px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -777,32 +898,13 @@
         max-height: 92vh;
         padding: 16px;
     }
-}
-.qr-timer-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    margin-top: -4px;
-}
 
-.qr-timer-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
-.qr-timer {
-    min-width: 110px;
-    padding: 10px 16px;
-    border-radius: 999px;
-    background: var(--surface-soft);
-    border: 1px solid var(--border-soft);
-    color: var(--text-primary);
-    font-size: 1.1rem;
-    font-weight: 900;
-    letter-spacing: .08em;
-    text-align: center;
+    .email-reminder-icon,
+    .confirm-alert-icon,
+    .success-message-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        font-size: 16px;
+    }
 }

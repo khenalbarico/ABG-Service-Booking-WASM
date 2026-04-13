@@ -24,6 +24,14 @@
                     <p>Please review your information carefully before proceeding to QR payment.</p>
                 </div>
 
+                <div class="confirm-alert">
+                    <div class="confirm-alert-icon">✉</div>
+                    <div class="confirm-alert-text">
+                        <strong>Please make sure your email address is correct.</strong>
+                        <span>Your booking ticket and confirmation will be sent to this email after successful payment.</span>
+                    </div>
+                </div>
+
                 <div class="confirm-section">
                     <div class="confirm-block">
                         <div class="confirm-title">Client Information</div>
@@ -36,7 +44,7 @@
                                 <span>Last Name</span>
                                 <strong>@Request.ClientInformation.LastName</strong>
                             </div>
-                            <div class="confirm-item">
+                            <div class="confirm-item confirm-item-email">
                                 <span>Email</span>
                                 <strong>@Request.ClientInformation.Email</strong>
                             </div>
@@ -145,6 +153,14 @@
                 <p>Please complete the details below to continue to payment</p>
             </div>
 
+            <div class="email-reminder-card">
+                <div class="email-reminder-icon">✉</div>
+                <div class="email-reminder-content">
+                    <strong>Use an active and correct email address.</strong>
+                    <span>Your booking ticket and confirmation will be sent there after successful payment.</span>
+                </div>
+            </div>
+
             <EditForm Model="Request.ClientInformation" OnValidSubmit="OpenConfirmModal">
                 <DataAnnotationsValidator />
                 <ValidationSummary class="validation-summary" />
@@ -162,13 +178,19 @@
                         <ValidationMessage For="@(() => Request.ClientInformation.LastName)" />
                     </div>
 
-                    <div class="input-group">
-                        <label>Email</label>
-                        <InputText class="form-input" placeholder="Enter email address" @bind-Value="Request.ClientInformation.Email" />
+                    <div class="input-group full-width">
+                        <label>Email Address</label>
+                        <InputText class="form-input email-input"
+                                   placeholder="Enter active email address"
+                                   @bind-Value="Request.ClientInformation.Email"
+                                   type="email"
+                                   inputmode="email"
+                                   autocomplete="email" />
+                        <div class="input-hint">Please double-check your email address. Your ticket will be sent here.</div>
                         <ValidationMessage For="@(() => Request.ClientInformation.Email)" />
                     </div>
 
-                    <div class="input-group">
+                    <div class="input-group full-width">
                         <label>Contact Number</label>
                         <InputText class="form-input" placeholder="Enter contact number" @bind-Value="Request.ClientInformation.ContactNumber" />
                         <ValidationMessage For="@(() => Request.ClientInformation.ContactNumber)" />
@@ -249,8 +271,18 @@
     {
         <div class="success-section fade-in">
             <div class="success-icon">✓</div>
-            <h2>Booking Confirmed</h2>
-            <p>Your appointment has been successfully booked.</p>
+            <div class="checkout-badge success-badge">Payment Successful</div>
+            <h2>Thank You for Your Booking!</h2>
+            <p>Your appointment has been successfully confirmed.</p>
+
+            <div class="success-message-card">
+                <div class="success-message-icon">✉</div>
+                <div class="success-message-content">
+                    <strong>Please check your email for your booking ticket.</strong>
+                    <span>We have sent your ticket and booking confirmation to <b>@Request.ClientInformation.Email</b>. Please also check your spam or junk folder if you do not see it in your inbox.</span>
+                </div>
+            </div>
+
             <button class="primary-btn" @onclick="Finish">Done</button>
         </div>
     }
