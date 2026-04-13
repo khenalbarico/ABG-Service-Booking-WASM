@@ -1,5 +1,4 @@
-﻿@using WasmCore1.Utilities
-<div class="services-page">
+﻿<div class="services-page">
     <div class="services-header">
         <div>
             <div class="page-badge">Service Manager</div>
@@ -27,6 +26,7 @@
                     <option value="Lash">Lash</option>
                     <option value="Eyebrows">Eyebrows</option>
                     <option value="Footspa">Footspa</option>
+                    <option value="Pedicure">Pedicure</option>
                 </select>
 
                 <input class="search-box"
@@ -104,6 +104,7 @@
                         <option value="Lash">Lash</option>
                         <option value="Eyebrows">Eyebrows</option>
                         <option value="Footspa">Footspa</option>
+                        <option value="Pedicure">Pedicure</option>
                     </select>
                 </div>
 
@@ -252,6 +253,7 @@
     [Parameter] public List<BaseSvcStructure> Lashes { get; set; } = [];
     [Parameter] public List<BaseSvcStructure> Eyebrows { get; set; } = [];
     [Parameter] public List<BaseSvcStructure> Footspa { get; set; } = [];
+    [Parameter] public List<BaseSvcStructure> Pedicure { get; set; } = [];
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public Func<string, BaseSvcStructure, Task>? SaveServiceAsync { get; set; }
     [Parameter] public Func<string, string, Task>? DeleteServiceAsync { get; set; }
@@ -296,7 +298,8 @@
             .. (Nails ?? []).Select(x => new ServiceListItem { Category = "Nails", Service = x }),
             .. (Lashes ?? []).Select(x => new ServiceListItem { Category = "Lash", Service = x }),
             .. (Eyebrows ?? []).Select(x => new ServiceListItem { Category = "Eyebrows", Service = x }),
-            .. (Footspa ?? []).Select(x => new ServiceListItem { Category = "Footspa", Service = x })
+            .. (Footspa ?? []).Select(x => new ServiceListItem { Category = "Footspa", Service = x }),
+            .. (Pedicure ?? []).Select(x => new ServiceListItem { Category = "Pedicure", Service = x })
         ];
 
         _services = _services

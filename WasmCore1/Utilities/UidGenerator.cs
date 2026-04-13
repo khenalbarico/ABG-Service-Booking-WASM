@@ -10,6 +10,7 @@ public static class UidGenerator
             "Lash"     => "LAS",
             "Eyebrows" => "EYS",
             "Footspa"  => "FOS",
+            "Pedicure" => "PES",
             _          => "SVS"
         };
 
@@ -24,6 +25,7 @@ public static class UidGenerator
             "lash"     => "Lash",
             "eyebrows" => "Eyebrows",
             "footspa"  => "Footspa",
+            "pedicure" => "Pedicure",
             _          => "Nails"
         };
     }

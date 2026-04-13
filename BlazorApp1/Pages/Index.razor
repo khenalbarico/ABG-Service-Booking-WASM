@@ -56,6 +56,15 @@
                         CurrentBookings="_clientRequest.ClientServices"
                         ScheduleCfg="_scheduleCfg"
                         OnBook="HandleBook" />
+
+        <ServiceSection @key="@($" pedicure-{_uiVersion}")"
+                        Title="Pedicure"
+                        Services="_services.Pedicure.Cast<BaseSvcStructure>().ToList()"
+                        BookedUids="_clientRequest.ClientServices.Select(x => x.ServiceUid).ToList()"
+                        AppointmentSchedules="_appointmentSchedules"
+                        CurrentBookings="_clientRequest.ClientServices"
+                        ScheduleCfg="_scheduleCfg"
+                        OnBook="HandleBook" />
     }
 
     <button class="checkout-fab" @onclick="ToggleCheckout">

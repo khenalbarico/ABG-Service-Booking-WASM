@@ -26,10 +26,11 @@
                                     Lashes="@_lashes"
                                     Eyebrows="@_eyebrows"
                                     Footspa="@_footspa"
+                                    Pedicure="@_pedicure"
                                     IsLoading="@_isServicesLoading"
                                     SaveServiceAsync="@SaveServiceAsync"
                                     DeleteServiceAsync="@DeleteServiceAsync"
-                                    ScheduleCfg="_scheduleCfg"/>
+                                    ScheduleCfg="@_scheduleCfg" />
                     break;
                 case "schedule":
                     <Admin_Schedule ScheduleCfg="@_scheduleCfg"
@@ -66,6 +67,7 @@ else
     private List<BaseSvcStructure> _lashes = [];
     private List<BaseSvcStructure> _eyebrows = [];
     private List<BaseSvcStructure> _footspa = [];
+    private List<BaseSvcStructure> _pedicure = [];
 
     private ScheduleCfg _scheduleCfg = new();
 
@@ -137,6 +139,11 @@ else
                 .Select(x => (BaseSvcStructure)x)
                 .OrderBy(x => x.Details)
                 .ToList();
+
+            _pedicure = (response.Pedicure ?? [])
+                .Select(x => (BaseSvcStructure)x)
+                .OrderBy(x => x.Details)
+                .ToList();
         }
         catch
         {
@@ -144,6 +151,7 @@ else
             _lashes = [];
             _eyebrows = [];
             _footspa = [];
+            _pedicure = [];
         }
         finally
         {
