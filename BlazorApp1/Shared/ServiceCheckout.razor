@@ -244,6 +244,8 @@
             showConsentForm = true;
             return;
         }
+
+        await StartPaymentAsync();
     }
 
     private bool RequiresNailsRules()
@@ -313,6 +315,7 @@
         isLoading = true;
         StateHasChanged();
 
+                     await Db.PostClientRequestAsync(Request);
         var result = await Payment.CreateQrphChargeAsync(Request);
 
         paymentIntentId = result.PaymentIntentId;
@@ -339,7 +342,6 @@
 
                     Request.Status = ClientStatus.Paid;
 
-                    await Db.PostClientRequestAsync(Request);
                     await Emailer.SendEmailAsync(Request);
                     await OnSchedulesChanged.InvokeAsync();
 

@@ -150,7 +150,7 @@
                             else if (selectedStatus == TimeSlotStatus.Full)
                             {
                                 <div class="slot-status-note slot-status-note-full">
-                                    This time slot is already full for selected bookings.
+                                    @GetFullSlotMessage(svc, cardKey, selectedTime)
                                 </div>
                             }
                         }
@@ -373,9 +373,22 @@
         }
 
         if (status == TimeSlotStatus.Full)
+        {
+            if (IsFootspaOrPedicureService(svc))
+                return $"{timeSlot} - Booked by Footspa or Pedicure";
+
             return $"{timeSlot} - Full";
+        }
 
         return timeSlot;
+    }
+
+    string GetFullSlotMessage(BaseSvcStructure svc, string cardKey, string timeSlot)
+    {
+        if (IsFootspaOrPedicureService(svc))
+            return "This time is not available because it is already booked by a Footspa or Pedicure appointment.";
+
+        return "This time slot is already full for selected bookings.";
     }
 
     ClientService? GetCurrentBookingConflict(string cardKey, DateTime date, string timeSlot)
@@ -398,11 +411,10 @@
             return false;
 
         var slotDateTime = CombineDateAndTime(date, timeSlot);
-        var isNailService = IsNailService(svc);
 
         var bookedCount = AppointmentSchedules
             .Where(x => x.ServiceDate == slotDateTime)
-            .Where(x => MatchesCapacityCategory(x, isNailService))
+            .Where(x => MatchesCapacityCategory(svc, x))
             .Select(x => x.ClientBookingId)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Count();
@@ -414,12 +426,7 @@
     {
         capacity = 0;
 
-        var map = IsNailService(svc)
-            ? ScheduleCfg?.NailsAccommodationCapacities
-            : ScheduleCfg?.OtherServicesAccommodationCapacities;
-
-        if (map is null || map.Count == 0)
-            return false;
+        var map = GetCapacityMap(svc);
 
         if (map.TryGetValue(timeSlot, out capacity))
             return true;
@@ -438,28 +445,54 @@
         return false;
     }
 
-    bool MatchesCapacityCategory(ApptSchedRec record, bool isNailService)
+    Dictionary<string, int> GetCapacityMap(BaseSvcStructure svc)
     {
-        if (record.Services is null || record.Services.Count == 0)
-            return true;
+        if (IsNailService(svc))
+            return ScheduleCfg.NailsAccommodationCapacities;
 
-        if (isNailService)
+        if (IsFootspaOrPedicureService(svc))
+            return ScheduleCfg.OtherServicesAccommodationCapacities.ToDictionary(x => x.Key, _ => 1);
+
+        return ScheduleCfg.OtherServicesAccommodationCapacities;
+    }
+
+    bool MatchesCapacityCategory(BaseSvcStructure svc, ApptSchedRec record)
+    {
+        if (IsNailService(svc))
             return record.Services.Any(IsNailServiceRecord);
 
-        return record.Services.Any(x => !IsNailServiceRecord(x));
+        if (IsFootspaOrPedicureService(svc))
+            return record.Services.Any(IsFootspaOrPedicureServiceRecord);
+
+        return record.Services.Any(IsRegularOtherServiceRecord);
     }
 
     bool IsNailService(BaseSvcStructure svc)
-    {
-        return Title.Contains("nail", StringComparison.OrdinalIgnoreCase)
-            || svc.Details.Contains("nail", StringComparison.OrdinalIgnoreCase);
-    }
+        => Title.Equals("Nails", StringComparison.OrdinalIgnoreCase);
+
+    bool IsFootspaService(BaseSvcStructure svc)
+        => Title.Equals("Footspa", StringComparison.OrdinalIgnoreCase);
+
+    bool IsPedicureService(BaseSvcStructure svc)
+        => Title.Equals("Pedicure", StringComparison.OrdinalIgnoreCase);
+
+    bool IsFootspaOrPedicureService(BaseSvcStructure svc)
+        => IsFootspaService(svc) || IsPedicureService(svc);
 
     bool IsNailServiceRecord(ApptSchedService service)
-    {
-        return (!string.IsNullOrWhiteSpace(service.ServiceName) && service.ServiceName.Contains("nail", StringComparison.OrdinalIgnoreCase))
-            || (!string.IsNullOrWhiteSpace(service.ServiceDetails) && service.ServiceDetails.Contains("nail", StringComparison.OrdinalIgnoreCase));
-    }
+        => service.ServiceName.Equals("Nails", StringComparison.OrdinalIgnoreCase);
+
+    bool IsFootspaServiceRecord(ApptSchedService service)
+        => service.ServiceName.Equals("Footspa", StringComparison.OrdinalIgnoreCase);
+
+    bool IsPedicureServiceRecord(ApptSchedService service)
+        => service.ServiceName.Equals("Pedicure", StringComparison.OrdinalIgnoreCase);
+
+    bool IsFootspaOrPedicureServiceRecord(ApptSchedService service)
+        => IsFootspaServiceRecord(service) || IsPedicureServiceRecord(service);
+
+    bool IsRegularOtherServiceRecord(ApptSchedService service)
+        => !IsNailServiceRecord(service) && !IsFootspaOrPedicureServiceRecord(service);
 
     DateTime CombineDateAndTime(DateTime date, string timeRange)
     {
@@ -599,13 +632,13 @@
 
         var data = new ClientService
         {
-            ServiceUid     = cardKey,
-            ServiceName    = Title,
-            ServiceDesign  = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
+            ServiceUid = cardKey,
+            ServiceName = Title,
+            ServiceDesign = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
             ServiceDetails = svc.Details,
-            ServiceCost    = svc.Cost,
-            Branch         = selectedBranch.Value,
-            ServiceDate    = combinedDate
+            ServiceCost = svc.Cost,
+            Branch = selectedBranch.Value,
+            ServiceDate = combinedDate
         };
 
         await OnBook.InvokeAsync(data);
