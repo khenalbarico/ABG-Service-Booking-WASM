@@ -35,11 +35,12 @@ public sealed class Constants
         Full
     }
 
-    public static readonly Dictionary<ServiceBranch, string> BranchNames = new()
+    public enum CheckoutFlowStep
     {
-        { ServiceBranch.Anabu,  "Anabu Doyets Imus Cavite" },
-        { ServiceBranch.Manila, "The Manila Residence Tower II TAFT Manila" }
-    };
+        Payment,
+        NailsRules,
+        ConsentForm
+    }
 
     public static readonly Dictionary<ServiceDesigns, List<string>> ImageUrls = new()
     {

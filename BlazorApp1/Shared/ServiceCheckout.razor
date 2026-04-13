@@ -1,4 +1,4 @@
-﻿@inject AppDb      Db
+﻿@inject AppDb Db
 @inject AppPayment Payment
 @inject AppEmailer Emailer
 
@@ -39,7 +39,7 @@
                             <div class="booking-name">@s.ServiceName</div>
                             <div class="booking-details">@s.ServiceDetails</div>
                             <div class="booking-meta">
-                                <span>@(BranchNames.TryGetValue(s.Branch, out var branchName) ? branchName : s.Branch.ToString())</span>
+                                <span>@GetBranchDisplayName(s.Branch)</span>
                                 <span>@s.ServiceDate.ToString("MMMM dd, yyyy")</span>
                                 <span>@s.ServiceDate.ToString("hh:mm tt")</span>
                             </div>
@@ -56,7 +56,7 @@
             <div class="summary-card fade-in">
                 <div class="summary-row">
                     <span>Total Amount</span>
-                    <strong>₱@Request.ClientServices.Sum(x => x.ServiceCost)</strong>
+                    <strong>₱@GetTotalAmount()</strong>
                 </div>
 
                 <button class="primary-btn" @onclick="OpenForm">
@@ -182,216 +182,3 @@
     }
 
 </div>
-
-@code {
-    [Parameter] public ClientRequest Request { get; set; } = new();
-    [Parameter] public EventCallback<string> OnRemove { get; set; }
-    [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public EventCallback OnCompleted { get; set; }
-    [Parameter] public EventCallback OnSchedulesChanged { get; set; }
-
-    bool showForm;
-    bool showSuccess;
-    bool showQr;
-    bool showNailsRules;
-    bool showConsentForm;
-    bool isLoading;
-
-    bool nailsRulesAccepted;
-    bool consentAccepted;
-
-    string? qrImageUrl;
-    string? paymentIntentId;
-    CancellationTokenSource? pollCts;
-
-    string? consumerError;
-
-    async Task Remove(string uid)
-        => await OnRemove.InvokeAsync(uid);
-
-    void OpenForm() => showForm = true;
-
-    void CloseForm()
-    {
-        consumerError = null;
-        showForm = false;
-    }
-
-    async Task Submit()
-    {
-        consumerError = null;
-
-        var info = Request.ClientInformation;
-
-        info.BookingDate     = DateTime.Now;
-        info.ClientBookingId = $"{DateTime.Now:MMddyy}-{Random.Shared.Next(10000000, 99999999)}";
-
-        var needsNailsRules = RequiresNailsRules();
-        var needsConsentForm = RequiresConsentForm();
-
-        showForm = false;
-
-        if (needsNailsRules && !nailsRulesAccepted)
-        {
-            showNailsRules = true;
-            showConsentForm = false;
-            return;
-        }
-
-        if (needsConsentForm && !consentAccepted)
-        {
-            showNailsRules = false;
-            showConsentForm = true;
-            return;
-        }
-
-        await StartPaymentAsync();
-    }
-
-    private bool RequiresNailsRules()
-    {
-        return Request.ClientServices.Any(x =>
-            ContainsKeyword(x.ServiceName, "nail") ||
-            ContainsKeyword(x.ServiceDetails, "nail"));
-    }
-
-    private bool RequiresConsentForm()
-    {
-        return Request.ClientServices.Any(x =>
-            ContainsKeyword(x.ServiceName, "lash") ||
-            ContainsKeyword(x.ServiceName, "brow") ||
-            ContainsKeyword(x.ServiceDetails, "lash") ||
-            ContainsKeyword(x.ServiceDetails, "brow"));
-    }
-
-    private static bool ContainsKeyword(string? value, string keyword)
-    {
-        return !string.IsNullOrWhiteSpace(value) &&
-               value.Contains(keyword, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private async Task HandleNailsRulesAccepted()
-    {
-        nailsRulesAccepted = true;
-        showNailsRules = false;
-
-        if (RequiresConsentForm() && !consentAccepted)
-        {
-            showConsentForm = true;
-            return;
-        }
-
-        await StartPaymentAsync();
-    }
-
-    private void BackFromNailsRules()
-    {
-        showNailsRules = false;
-        showForm = true;
-    }
-
-    private async Task HandleConsentAccepted()
-    {
-        consentAccepted = true;
-        showConsentForm = false;
-        await StartPaymentAsync();
-    }
-
-    private void BackFromConsentForm()
-    {
-        showConsentForm = false;
-
-        if (RequiresNailsRules() && nailsRulesAccepted)
-        {
-            showNailsRules = true;
-            return;
-        }
-
-        showForm = true;
-    }
-
-    private async Task StartPaymentAsync()
-    {
-        isLoading = true;
-        StateHasChanged();
-
-                     await Db.PostClientRequestAsync(Request);
-        var result = await Payment.CreateQrphChargeAsync(Request);
-
-        paymentIntentId = result.PaymentIntentId;
-        qrImageUrl      = result.QrImageUrl;
-
-        isLoading = false;
-        showQr    = true;
-
-        pollCts = new CancellationTokenSource();
-        _ = PollPaymentStatus(pollCts.Token);
-    }
-
-    private async Task PollPaymentStatus(CancellationToken ct)
-    {
-        try
-        {
-            while (!ct.IsCancellationRequested)
-            {
-                var status = await Payment.GetPaymentIntentStatusAsync(paymentIntentId!);
-
-                if (status == "succeeded")
-                {
-                    pollCts?.Cancel();
-
-                    Request.Status = ClientStatus.Paid;
-
-                    await Emailer.SendEmailAsync(Request);
-                    await OnSchedulesChanged.InvokeAsync();
-
-                    showForm = false;
-                    showQr = false;
-                    showNailsRules = false;
-                    showConsentForm = false;
-                    paymentIntentId = null;
-                    qrImageUrl = null;
-                    showSuccess = true;
-
-                    await InvokeAsync(StateHasChanged);
-                    break;
-                }
-
-                await Task.Delay(3000, ct);
-            }
-        }
-        catch (TaskCanceledException)
-        {
-        }
-    }
-
-    private void CancelPayment()
-    {
-        pollCts?.Cancel();
-        showQr = false;
-        paymentIntentId = null;
-        qrImageUrl = null;
-    }
-
-    private async Task Close()
-    {
-        pollCts?.Cancel();
-        await OnClose.InvokeAsync();
-    }
-
-    private async Task Finish()
-    {
-        pollCts?.Cancel();
-        showSuccess = false;
-        showForm = false;
-        showQr = false;
-        showNailsRules = false;
-        showConsentForm = false;
-        paymentIntentId = null;
-        qrImageUrl = null;
-        consumerError = null;
-        nailsRulesAccepted = false;
-        consentAccepted = false;
-        await OnCompleted.InvokeAsync();
-    }
-}
