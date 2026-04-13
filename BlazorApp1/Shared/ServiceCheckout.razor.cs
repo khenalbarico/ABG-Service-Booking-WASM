@@ -13,6 +13,8 @@ public partial class ServiceCheckout : IDisposable
     [Parameter] public EventCallback         OnCompleted        { get; set; }
     [Parameter] public EventCallback         OnSchedulesChanged { get; set; }
 
+    private const int QrPollingTimeoutSeconds = 120;
+
     bool showForm;
     bool showSuccess;
     bool showQr;
@@ -29,6 +31,9 @@ public partial class ServiceCheckout : IDisposable
 
     string? consumerError;
     bool    showConfirmModal;
+
+    int qrCountdownSeconds = QrPollingTimeoutSeconds;
+    string qrCountdownDisplay => TimeSpan.FromSeconds(qrCountdownSeconds).ToString(@"mm\:ss");
 
     private async Task Remove(string uid)
         => await OnRemove.InvokeAsync(uid);
@@ -140,46 +145,72 @@ public partial class ServiceCheckout : IDisposable
 
     private async Task StartPaymentAsync()
     {
-        isLoading = true;
+        isLoading     = true;
+        consumerError = null;
         StateHasChanged();
 
-                     await Db.ValidateAvailabilityAsync(Request);
-        var result = await Payment.CreateQrphChargeAsync(Request);
+        try
+        {
+                         await Db.ValidateAvailabilityAsync(Request);
+            var result = await Payment.CreateQrphChargeAsync(Request);
 
-        paymentIntentId = result.PaymentIntentId;
-        qrImageUrl      = result.QrImageUrl;
+            paymentIntentId = result.PaymentIntentId;
+            qrImageUrl      = result.QrImageUrl;
 
-        isLoading = false;
-        showQr    = true;
+            showQr          = true;
+            showForm        = false;
+            showNailsRules  = false;
+            showConsentForm = false;
 
-        pollCts   = new CancellationTokenSource();
-        _ = PollPaymentStatus(pollCts.Token);
+            qrCountdownSeconds = QrPollingTimeoutSeconds;
+
+            pollCts?.Cancel();
+            pollCts?.Dispose();
+            pollCts = new CancellationTokenSource();
+
+            _ = PollPaymentStatus(pollCts.Token);
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private async Task PollPaymentStatus(CancellationToken ct)
     {
         try
         {
-            while (!ct.IsCancellationRequested)
+            while (!ct.IsCancellationRequested && qrCountdownSeconds > 0)
             {
-                var status = await Payment.GetPaymentIntentStatusAsync(paymentIntentId!);
-
-                if (CheckoutPaymentAlgorithms.IsPaymentSuccessful(status))
+                if (qrCountdownSeconds == QrPollingTimeoutSeconds || qrCountdownSeconds % 3 == 0)
                 {
-                    pollCts?.Cancel();
+                    var status = await Payment.GetPaymentIntentStatusAsync(paymentIntentId!);
 
-                    Request.Status = ClientStatus.Paid;
-                    await Db.PostClientRequestAsync(Request);
-                    await Emailer.SendEmailAsync(Request);
-                    await OnSchedulesChanged.InvokeAsync();
+                    if (CheckoutPaymentAlgorithms.IsPaymentSuccessful(status))
+                    {
+                        pollCts?.Cancel();
 
-                    ShowSuccessState();
+                        Request.Status = ClientStatus.Paid;
+                        await Db.PostClientRequestAsync(Request);
+                        await Emailer.SendEmailAsync(Request);
+                        await OnSchedulesChanged.InvokeAsync();
 
-                    await InvokeAsync(StateHasChanged);
-                    break;
+                        ShowSuccessState();
+
+                        await InvokeAsync(StateHasChanged);
+                        return;
+                    }
                 }
 
-                await Task.Delay(3000, ct);
+                await Task.Delay(1000, ct);
+                qrCountdownSeconds--;
+                await InvokeAsync(StateHasChanged);
+            }
+
+            if (!ct.IsCancellationRequested && qrCountdownSeconds <= 0)
+            {
+                await InvokeAsync(HandlePaymentExpired);
             }
         }
         catch (TaskCanceledException)
@@ -187,12 +218,30 @@ public partial class ServiceCheckout : IDisposable
         }
     }
 
+    private void HandlePaymentExpired()
+    {
+        pollCts?.Cancel();
+
+        showQr             = false;
+        paymentIntentId    = null;
+        qrImageUrl         = null;
+        qrCountdownSeconds = QrPollingTimeoutSeconds;
+
+        showForm = true;
+
+        consumerError = "The QR code expired after 120 seconds. Please click Proceed again to generate a new QR code.";
+
+        StateHasChanged();
+    }
+
     private void CancelPayment()
     {
         pollCts?.Cancel();
-        showQr = false;
-        paymentIntentId = null;
-        qrImageUrl = null;
+        showQr             = false;
+        paymentIntentId    = null;
+        qrImageUrl         = null;
+        qrCountdownSeconds = QrPollingTimeoutSeconds;
+        showForm           = true;
     }
 
     private async Task Close()
@@ -210,27 +259,29 @@ public partial class ServiceCheckout : IDisposable
 
     private void ShowSuccessState()
     {
-        showForm = false;
-        showQr = false;
-        showNailsRules = false;
-        showConsentForm = false;
-        paymentIntentId = null;
-        qrImageUrl = null;
-        showSuccess = true;
+        showForm           = false;
+        showQr             = false;
+        showNailsRules     = false;
+        showConsentForm    = false;
+        paymentIntentId    = null;
+        qrImageUrl         = null;
+        qrCountdownSeconds = QrPollingTimeoutSeconds;
+        showSuccess        = true;
     }
 
     private void ResetCheckoutState()
     {
-        showSuccess = false;
-        showForm = false;
-        showQr = false;
-        showNailsRules = false;
-        showConsentForm = false;
-        paymentIntentId = null;
-        qrImageUrl = null;
-        consumerError = null;
+        showSuccess        = false;
+        showForm           = false;
+        showQr             = false;
+        showNailsRules     = false;
+        showConsentForm    = false;
+        paymentIntentId    = null;
+        qrImageUrl         = null;
+        qrCountdownSeconds = QrPollingTimeoutSeconds;
+        consumerError      = null;
         nailsRulesAccepted = false;
-        consentAccepted = false;
+        consentAccepted    = false;
     }
 
     public void Dispose()
