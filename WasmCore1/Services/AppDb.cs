@@ -16,7 +16,7 @@ public class AppDb (IApiClient _apiClient)
     => await _apiClient.GetAsync<List<ApptSchedRec>>("IAppDbOperator", "GetAppointmentSchedulesAsync", ct);
 
     public async Task PostClientRequestAsync(ClientRequest req, CancellationToken ct = default)
-    => await _apiClient.PostAsync("IAppDbOperator", "PostClientRequestAsync", new { req }, ct);
+    => await _apiClient.PostAsync("IAppDbOperator", "PostClientRequestAsync", req, ct);
 
     public async Task<List<ClientRequest>> GetClientRequestsAsync(CancellationToken ct = default)
     => await _apiClient.GetAsync<List<ClientRequest>>("IAppDbOperator", "GetClientRequestsAsync", ct);
@@ -31,5 +31,5 @@ public class AppDb (IApiClient _apiClient)
     => await _apiClient.GetAsync<ScheduleCfg>("IAppDbOperator", "GetScheduleCfgAsync", ct);
 
     public async Task PostScheduleCfgAsync(ScheduleCfg cfg, CancellationToken ct = default)
-    => await _apiClient.PostAsync("IAppDbOperator", "PostScheduleCfgAsync", new { cfg }, ct);
+    => await _apiClient.PostAsync("IAppDbOperator", "PostScheduleCfgAsync", cfg, ct);
 }

@@ -71,7 +71,7 @@
                                  Request="_clientRequest"
                                  OnRemove="RemoveService"
                                  OnClose="ToggleCheckout"
-                                 OnCompleted="HandleCompleted"/>
+                                 OnCompleted="HandleCompleted" />
             </div>
         </div>
     }
@@ -86,6 +86,11 @@
     int _uiVersion;
 
     protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
     {
         _services             = await Db.GetServicesAsync();
         _appointmentSchedules = await Db.GetAppointmentSchedulesAsync();
@@ -111,13 +116,14 @@
 
     private void ToggleCheckout() => showCheckout = !showCheckout;
 
-    private Task HandleCompleted()
+    private async Task HandleCompleted()
     {
         _clientRequest = new ClientRequest();
-        showCheckout = false;
+        showCheckout   = false;
         _uiVersion++;
-        StateHasChanged();
 
-        return Task.CompletedTask;
+        await LoadDataAsync();
+
+        StateHasChanged();
     }
 }
