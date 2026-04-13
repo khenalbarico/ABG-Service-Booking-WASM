@@ -1,10 +1,22 @@
 ﻿@inject IJSRuntime JS
 
 <div class="consent-card">
+    <div class="consent-header">
+        <div>
+            <h3 class="consent-title">Consent Form</h3>
+            <p class="consent-subtitle">Please review the form carefully before proceeding to payment.</p>
+        </div>
+        <div class="required-chip">Required: #2 and #10</div>
+    </div>
+
     <div class="consent-scroll" @ref="scrollRef" @onscroll="HandleScroll">
         <div class="consent-section consent-highlight">
             <h4>Before You Proceed</h4>
             <p>Please review all details below and complete the required fields before proceeding to payment.</p>
+            <div class="consent-mini-alert">
+                <span class="mini-alert-label">Required</span>
+                <span>Section 2 and Section 10 must be completed before you can continue.</span>
+            </div>
         </div>
 
         <div class="consent-section">
@@ -12,8 +24,13 @@
             <p>I voluntarily agree to receive lash and/or brow services including, but not limited to, eyelash extensions, lash lift, lash tint, brow lamination, brow tint, and related procedures.</p>
         </div>
 
-        <div class="consent-section">
-            <h4>2. Pre-Service Requirements</h4>
+        <div class="consent-section consent-required @(ShowSection2Error ? "consent-invalid" : "")">
+            <div class="section-heading-row">
+                <h4>2. Pre-Service Requirements</h4>
+                <span class="required-badge">Required</span>
+            </div>
+            <p class="section-helper">You must confirm both items in this section before proceeding.</p>
+
             <div class="check-grid">
                 <label class="check-row">
                     <input type="checkbox" @bind="model.NoRecentProcedure" />
@@ -25,7 +42,13 @@
                     <span>I will arrive with clean lashes or brows with no mascara, makeup, or oils.</span>
                 </label>
             </div>
+
             <p class="section-note">Failure to follow these requirements may result in refusal of service or additional charges.</p>
+
+            @if (ShowSection2Error)
+            {
+                <div class="inline-error">Please complete both required confirmations in Section 2.</div>
+            }
         </div>
 
         <div class="consent-section">
@@ -144,8 +167,13 @@
             </div>
         </div>
 
-        <div class="consent-section consent-last">
-            <h4>10. Client Confirmation</h4>
+        <div class="consent-section consent-last consent-required @(ShowSection10Error ? "consent-invalid" : "")">
+            <div class="section-heading-row">
+                <h4>10. Client Confirmation</h4>
+                <span class="required-badge">Required</span>
+            </div>
+            <p class="section-helper">All three confirmations below are required before you can proceed.</p>
+
             <div class="check-grid">
                 <label class="check-row">
                     <input type="checkbox" @bind="model.ReadAndUnderstood" />
@@ -162,32 +190,39 @@
                     <span>I agree to proceed with the service at my own risk.</span>
                 </label>
             </div>
+
+            @if (ShowSection10Error)
+            {
+                <div class="inline-error">Please complete all required confirmations in Section 10.</div>
+            }
         </div>
     </div>
 
-    <div class="consent-readiness">
-        @if (!hasReachedBottom)
-        {
-            <div class="consent-status">Please scroll to the end of the form to unlock the next step.</div>
-        }
-        else if (countdownActive)
-        {
-            <div class="consent-status">Please wait @countdown seconds before proceeding.</div>
-        }
-        else
-        {
-            <div class="consent-status consent-status-ready">You may now continue once the required fields are completed.</div>
-        }
-    </div>
+    <div class="consent-footer">
+        <div class="consent-readiness">
+            @if (!hasReachedBottom)
+            {
+                <div class="consent-status">Please scroll to the end of the form to unlock the next step.</div>
+            }
+            else if (countdownActive)
+            {
+                <div class="consent-status">Please wait @countdown seconds before proceeding.</div>
+            }
+            else
+            {
+                <div class="consent-status consent-status-ready">You may now continue once the required fields are completed.</div>
+            }
+        </div>
 
-    @if (!string.IsNullOrWhiteSpace(errorMessage))
-    {
-        <div class="consent-error">@errorMessage</div>
-    }
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <div class="consent-error">@errorMessage</div>
+        }
 
-    <div class="consent-actions">
-        <button type="button" class="secondary-btn" @onclick="HandleBack">Back</button>
-        <button type="button" class="primary-btn" disabled="@(!CanProceedByReading)" @onclick="HandleProceed">@ProceedLabel</button>
+        <div class="consent-actions">
+            <button type="button" class="secondary-btn" @onclick="HandleBack">Back</button>
+            <button type="button" class="primary-btn" disabled="@(!CanProceedByReading)" @onclick="HandleProceed">@ProceedLabel</button>
+        </div>
     </div>
 </div>
 
@@ -196,15 +231,22 @@
     [Parameter] public EventCallback OnBack { get; set; }
 
     private ElementReference scrollRef;
-    private string?          errorMessage;
-    private ConsentModel     model = new();
+    private string? errorMessage;
+    private ConsentModel model = new();
 
     private bool hasReachedBottom;
     private bool countdownActive;
     private bool countdownFinished;
-    private int  countdown = 3;
+    private bool attemptedProceed;
+    private int countdown = 3;
 
     private bool CanProceedByReading => countdownFinished;
+
+    private bool ShowSection2Error =>
+        attemptedProceed && (!model.NoRecentProcedure || !model.WillArriveClean);
+
+    private bool ShowSection10Error =>
+        attemptedProceed && (!model.ReadAndUnderstood || !model.InformationIsTrue || !model.AgreeToProceed);
 
     private string ProceedLabel
     {
@@ -225,6 +267,7 @@
         if (!CanProceedByReading)
             return;
 
+        attemptedProceed = true;
         errorMessage = ValidateForm();
 
         if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -297,7 +340,7 @@
     private string? ValidateForm()
     {
         if (!model.NoRecentProcedure || !model.WillArriveClean)
-            return "Please confirm the pre-service requirements before proceeding.";
+            return "Section 2 is required. Please complete the pre-service requirements before proceeding.";
 
         if (!HasAnyHealthSelection())
             return "Please complete the health and sensitivity checklist.";
@@ -309,7 +352,7 @@
             return "Please choose your photo consent preference.";
 
         if (!model.ReadAndUnderstood || !model.InformationIsTrue || !model.AgreeToProceed)
-            return "Please complete all client confirmation items before proceeding.";
+            return "Section 10 is required. Please complete all client confirmation items before proceeding.";
 
         return null;
     }
