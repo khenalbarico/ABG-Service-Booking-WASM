@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
 using WasmCore1.Algorithms;
 using WasmCore1.Models.Client;
+using WasmCore1.Models.PolicyForms;
 using static WasmCore1.Models.Constants;
 
 namespace BlazorApp1.Shared;
 
 public partial class ServiceCheckout : IDisposable
 {
-    [Parameter] public ClientRequest         Request            { get; set; } = new();
-    [Parameter] public EventCallback<string> OnRemove           { get; set; }
-    [Parameter] public EventCallback         OnClose            { get; set; }
-    [Parameter] public EventCallback         OnCompleted        { get; set; }
+    [Parameter] public ClientRequest         Request { get; set; } = new();
+    [Parameter] public EventCallback<string> OnRemove { get; set; }
+    [Parameter] public EventCallback         OnClose { get; set; }
+    [Parameter] public EventCallback         OnCompleted { get; set; }
     [Parameter] public EventCallback         OnSchedulesChanged { get; set; }
 
     private const int QrPollingTimeoutSeconds = 120;
@@ -25,12 +26,12 @@ public partial class ServiceCheckout : IDisposable
     bool nailsRulesAccepted;
     bool consentAccepted;
 
-    string?                  qrImageUrl;
-    string?                  paymentIntentId;
+    string? qrImageUrl;
+    string? paymentIntentId;
     CancellationTokenSource? pollCts;
 
     string? consumerError;
-    bool    showConfirmModal;
+    bool showConfirmModal;
 
     int qrCountdownSeconds = QrPollingTimeoutSeconds;
     string qrCountdownDisplay => TimeSpan.FromSeconds(qrCountdownSeconds).ToString(@"mm\:ss");
@@ -44,7 +45,7 @@ public partial class ServiceCheckout : IDisposable
     private void CloseForm()
     {
         consumerError = null;
-        showForm = false;
+        showForm      = false;
     }
 
     private void OpenConfirmModal()
@@ -74,6 +75,9 @@ public partial class ServiceCheckout : IDisposable
 
         CheckoutRequestAlgorithms.PrepareClientInformation(Request);
 
+        if (Request.ClientConsent == null)
+            Request.ClientConsent = new ConsentModel();
+
         showForm = false;
 
         var nextStep = CheckoutPolicyAlgorithms.ResolveNextStep(
@@ -83,14 +87,14 @@ public partial class ServiceCheckout : IDisposable
 
         if (nextStep == CheckoutFlowStep.NailsRules)
         {
-            showNailsRules = true;
+            showNailsRules  = true;
             showConsentForm = false;
             return;
         }
 
         if (nextStep == CheckoutFlowStep.ConsentForm)
         {
-            showNailsRules = false;
+            showNailsRules  = false;
             showConsentForm = true;
             return;
         }
@@ -101,7 +105,7 @@ public partial class ServiceCheckout : IDisposable
     private async Task HandleNailsRulesAccepted()
     {
         nailsRulesAccepted = true;
-        showNailsRules = false;
+        showNailsRules     = false;
 
         var nextStep = CheckoutPolicyAlgorithms.ResolveNextStep(
             Request,
@@ -110,6 +114,9 @@ public partial class ServiceCheckout : IDisposable
 
         if (nextStep == CheckoutFlowStep.ConsentForm)
         {
+            if (Request.ClientConsent == null)
+                Request.ClientConsent = new ConsentModel();
+
             showConsentForm = true;
             return;
         }
@@ -120,7 +127,7 @@ public partial class ServiceCheckout : IDisposable
     private void BackFromNailsRules()
     {
         showNailsRules = false;
-        showForm = true;
+        showForm       = true;
     }
 
     private async Task HandleConsentAccepted()
@@ -151,7 +158,7 @@ public partial class ServiceCheckout : IDisposable
 
         try
         {
-                         await Db.ValidateAvailabilityAsync(Request);
+            await Db.ValidateAvailabilityAsync(Request);
             var result = await Payment.CreateQrphChargeAsync(Request);
 
             paymentIntentId = result.PaymentIntentId;
@@ -271,17 +278,18 @@ public partial class ServiceCheckout : IDisposable
 
     private void ResetCheckoutState()
     {
-        showSuccess        = false;
-        showForm           = false;
-        showQr             = false;
-        showNailsRules     = false;
-        showConsentForm    = false;
-        paymentIntentId    = null;
-        qrImageUrl         = null;
-        qrCountdownSeconds = QrPollingTimeoutSeconds;
-        consumerError      = null;
-        nailsRulesAccepted = false;
-        consentAccepted    = false;
+        showSuccess           = false;
+        showForm              = false;
+        showQr                = false;
+        showNailsRules        = false;
+        showConsentForm       = false;
+        paymentIntentId       = null;
+        qrImageUrl            = null;
+        qrCountdownSeconds    = QrPollingTimeoutSeconds;
+        consumerError         = null;
+        nailsRulesAccepted    = false;
+        consentAccepted       = false;
+        Request.ClientConsent = new ConsentModel();
     }
 
     public void Dispose()

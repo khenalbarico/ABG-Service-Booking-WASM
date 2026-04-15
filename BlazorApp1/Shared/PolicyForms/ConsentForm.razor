@@ -33,12 +33,12 @@
 
             <div class="check-grid">
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.NoRecentProcedure" />
+                    <input type="checkbox" @bind="Model.NoRecentProcedure" />
                     <span>I have <strong>not</strong> had any lash or brow procedure within the past 2 weeks.</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.WillArriveClean" />
+                    <input type="checkbox" @bind="Model.WillArriveClean" />
                     <span>I will arrive with clean lashes or brows with no mascara, makeup, or oils.</span>
                 </label>
             </div>
@@ -55,42 +55,42 @@
             <h4>3. Health & Sensitivity Checklist</h4>
             <div class="check-grid">
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.SensitiveEyes" />
+                    <input type="checkbox" @bind="Model.SensitiveEyes" />
                     <span>Sensitive eyes</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.SensitiveSkin" />
+                    <input type="checkbox" @bind="Model.SensitiveSkin" />
                     <span>Sensitive skin</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.HistoryOfAllergicReactions" />
+                    <input type="checkbox" @bind="Model.HistoryOfAllergicReactions" />
                     <span>History of allergic reactions to lash glue or adhesives</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.ChemicalAllergies" />
+                    <input type="checkbox" @bind="Model.ChemicalAllergies" />
                     <span>Allergies to chemicals, dyes, or cosmetics</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.CurrentEyeIssue" />
+                    <input type="checkbox" @bind="Model.CurrentEyeIssue" />
                     <span>Currently experiencing eye irritation, redness, or infection</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.RecentEyeProcedure" />
+                    <input type="checkbox" @bind="Model.RecentEyeProcedure" />
                     <span>Recently had eye surgery or procedure</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.WearingContactsToday" />
+                    <input type="checkbox" @bind="Model.WearingContactsToday" />
                     <span>Wearing contact lenses today</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" checked="@model.NoneOfTheAbove" @onchange="HandleNoneOfTheAboveChanged" />
+                    <input type="checkbox" checked="@Model.NoneOfTheAbove" @onchange="HandleNoneOfTheAboveChanged" />
                     <span>None of the above</span>
                 </label>
             </div>
@@ -133,13 +133,13 @@
             </ul>
 
             <div class="option-grid">
-                <label class="option-card @(model.ProceedAtOwnRisk ? "selected" : "")">
-                    <input type="radio" name="riskChoice" checked="@model.ProceedAtOwnRisk" @onchange="@(() => SelectRiskChoice("proceed"))" />
+                <label class="option-card @(Model.ProceedAtOwnRisk ? "selected" : "")">
+                    <input type="radio" name="riskChoice" checked="@Model.ProceedAtOwnRisk" @onchange="@(() => SelectRiskChoice("proceed"))" />
                     <span>I choose to proceed with the service at my own risk</span>
                 </label>
 
-                <label class="option-card @(model.RequestPatchTest ? "selected" : "")">
-                    <input type="radio" name="riskChoice" checked="@model.RequestPatchTest" @onchange="@(() => SelectRiskChoice("patch"))" />
+                <label class="option-card @(Model.RequestPatchTest ? "selected" : "")">
+                    <input type="radio" name="riskChoice" checked="@Model.RequestPatchTest" @onchange="@(() => SelectRiskChoice("patch"))" />
                     <span>I prefer to request a patch test first if available</span>
                 </label>
             </div>
@@ -155,13 +155,13 @@
         <div class="consent-section">
             <h4>9. Photo Consent</h4>
             <div class="option-grid">
-                <label class="option-card @(model.AllowPhotos ? "selected" : "")">
-                    <input type="radio" name="photoChoice" checked="@model.AllowPhotos" @onchange="@(() => SelectPhotoChoice("allow"))" />
+                <label class="option-card @(Model.AllowPhotos ? "selected" : "")">
+                    <input type="radio" name="photoChoice" checked="@Model.AllowPhotos" @onchange="@(() => SelectPhotoChoice("allow"))" />
                     <span>I allow photos or videos for marketing</span>
                 </label>
 
-                <label class="option-card @(model.DisallowPhotos ? "selected" : "")">
-                    <input type="radio" name="photoChoice" checked="@model.DisallowPhotos" @onchange="@(() => SelectPhotoChoice("deny"))" />
+                <label class="option-card @(Model.DisallowPhotos ? "selected" : "")">
+                    <input type="radio" name="photoChoice" checked="@Model.DisallowPhotos" @onchange="@(() => SelectPhotoChoice("deny"))" />
                     <span>I do not allow photos or videos</span>
                 </label>
             </div>
@@ -176,17 +176,17 @@
 
             <div class="check-grid">
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.ReadAndUnderstood" />
+                    <input type="checkbox" @bind="Model.ReadAndUnderstood" />
                     <span>I have read and understood this waiver.</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.InformationIsTrue" />
+                    <input type="checkbox" @bind="Model.InformationIsTrue" />
                     <span>All information I provided is true and accurate.</span>
                 </label>
 
                 <label class="check-row">
-                    <input type="checkbox" @bind="model.AgreeToProceed" />
+                    <input type="checkbox" @bind="Model.AgreeToProceed" />
                     <span>I agree to proceed with the service at my own risk.</span>
                 </label>
             </div>
@@ -229,10 +229,10 @@
 @code {
     [Parameter] public EventCallback OnProceed { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public ConsentModel Model { get; set; } = new();
 
     private ElementReference scrollRef;
     private string? errorMessage;
-    private ConsentModel model = new();
 
     private bool hasReachedBottom;
     private bool countdownActive;
@@ -243,10 +243,10 @@
     private bool CanProceedByReading => countdownFinished;
 
     private bool ShowSection2Error =>
-        attemptedProceed && (!model.NoRecentProcedure || !model.WillArriveClean);
+        attemptedProceed && (!Model.NoRecentProcedure || !Model.WillArriveClean);
 
     private bool ShowSection10Error =>
-        attemptedProceed && (!model.ReadAndUnderstood || !model.InformationIsTrue || !model.AgreeToProceed);
+        attemptedProceed && (!Model.ReadAndUnderstood || !Model.InformationIsTrue || !Model.AgreeToProceed);
 
     private string ProceedLabel
     {
@@ -283,31 +283,31 @@
 
     private void SelectRiskChoice(string value)
     {
-        model.ProceedAtOwnRisk = value == "proceed";
-        model.RequestPatchTest = value == "patch";
+        Model.ProceedAtOwnRisk = value == "proceed";
+        Model.RequestPatchTest = value == "patch";
     }
 
     private void SelectPhotoChoice(string value)
     {
-        model.AllowPhotos = value == "allow";
-        model.DisallowPhotos = value == "deny";
+        Model.AllowPhotos = value == "allow";
+        Model.DisallowPhotos = value == "deny";
     }
 
     private void HandleNoneOfTheAboveChanged(ChangeEventArgs e)
     {
         var isChecked = e.Value is bool b && b;
 
-        model.NoneOfTheAbove = isChecked;
+        Model.NoneOfTheAbove = isChecked;
 
-        if (model.NoneOfTheAbove)
+        if (Model.NoneOfTheAbove)
         {
-            model.SensitiveEyes = false;
-            model.SensitiveSkin = false;
-            model.HistoryOfAllergicReactions = false;
-            model.ChemicalAllergies = false;
-            model.CurrentEyeIssue = false;
-            model.RecentEyeProcedure = false;
-            model.WearingContactsToday = false;
+            Model.SensitiveEyes = false;
+            Model.SensitiveSkin = false;
+            Model.HistoryOfAllergicReactions = false;
+            Model.ChemicalAllergies = false;
+            Model.CurrentEyeIssue = false;
+            Model.RecentEyeProcedure = false;
+            Model.WearingContactsToday = false;
         }
     }
 
@@ -339,19 +339,19 @@
 
     private string? ValidateForm()
     {
-        if (!model.NoRecentProcedure || !model.WillArriveClean)
+        if (!Model.NoRecentProcedure || !Model.WillArriveClean)
             return "Section 2 is required. Please complete the pre-service requirements before proceeding.";
 
         if (!HasAnyHealthSelection())
             return "Please complete the health and sensitivity checklist.";
 
-        if (!model.ProceedAtOwnRisk && !model.RequestPatchTest)
+        if (!Model.ProceedAtOwnRisk && !Model.RequestPatchTest)
             return "Please choose whether you want to proceed at your own risk or request a patch test first.";
 
-        if (!model.AllowPhotos && !model.DisallowPhotos)
+        if (!Model.AllowPhotos && !Model.DisallowPhotos)
             return "Please choose your photo consent preference.";
 
-        if (!model.ReadAndUnderstood || !model.InformationIsTrue || !model.AgreeToProceed)
+        if (!Model.ReadAndUnderstood || !Model.InformationIsTrue || !Model.AgreeToProceed)
             return "Section 10 is required. Please complete all client confirmation items before proceeding.";
 
         return null;
@@ -359,13 +359,13 @@
 
     private bool HasAnyHealthSelection()
     {
-        return model.SensitiveEyes ||
-               model.SensitiveSkin ||
-               model.HistoryOfAllergicReactions ||
-               model.ChemicalAllergies ||
-               model.CurrentEyeIssue ||
-               model.RecentEyeProcedure ||
-               model.WearingContactsToday ||
-               model.NoneOfTheAbove;
+        return Model.SensitiveEyes ||
+               Model.SensitiveSkin ||
+               Model.HistoryOfAllergicReactions ||
+               Model.ChemicalAllergies ||
+               Model.CurrentEyeIssue ||
+               Model.RecentEyeProcedure ||
+               Model.WearingContactsToday ||
+               Model.NoneOfTheAbove;
     }
 }

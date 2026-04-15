@@ -1,4 +1,4 @@
-﻿@inject AppDb Db
+﻿@inject AppDb      Db
 @inject AppPayment Payment
 @inject AppEmailer Emailer
 
@@ -232,7 +232,9 @@
                 <p>Please review and complete the form below before proceeding to payment.</p>
             </div>
 
-            <ConsentForm OnProceed="HandleConsentAccepted" OnBack="BackFromConsentForm" />
+            <ConsentForm Model="Request.ClientConsent"
+                         OnProceed="HandleConsentAccepted"
+                         OnBack="BackFromConsentForm" />
         </div>
     }
 
