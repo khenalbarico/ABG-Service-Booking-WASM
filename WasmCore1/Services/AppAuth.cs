@@ -3,7 +3,7 @@ using WasmTools1.Api;
 
 namespace WasmCore1.Services;
 
-public class AppAuth (IApiClient _apiClient, AppGlobalError _globalError)
+public class AppAuth (IApiClient _apiClient)
 {
     public async Task<AuthResp> LoginAsync(string email, string password, CancellationToken ct = default)
     {
@@ -15,8 +15,7 @@ public class AppAuth (IApiClient _apiClient, AppGlobalError _globalError)
         }
         catch (Exception ex)
         {
-            await _globalError.ShowAsync(ex);
-            throw;
+            throw new Exception(ex.Message);
         }
     }
 }

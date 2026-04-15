@@ -9,10 +9,10 @@
     <div class="service-cards">
         @foreach (var svc in Services)
         {
-            var cardKey = GetCardKey(svc);
-            var isBooked = BookedUids.Contains(cardKey);
+            var cardKey   = GetCardKey(svc);
+            var isBooked  = BookedUids.Contains(cardKey);
             var hasBranch = HasSelectedBranch(cardKey);
-            var hasDate = HasSelectedDate(cardKey);
+            var hasDate   = HasSelectedDate(cardKey);
 
             <article class="service-card @(svc.ScheduleSlots.IsAvailable ? "" : "service-card-disabled")" @key="cardKey">
                 <div class="service-top">
