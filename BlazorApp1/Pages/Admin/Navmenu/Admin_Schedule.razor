@@ -310,7 +310,7 @@
         var generated = new List<string>();
 
         for (var hour = start; hour < end; hour++)
-            generated.Add(FormatHour(hour));
+            generated.Add($"{FormatHour(hour)}-{FormatHour(hour + 1)}");
 
         _storeHours = generated;
         NormalizeCapacities(true);
