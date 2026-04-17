@@ -158,7 +158,6 @@ public partial class ServiceCheckout : IDisposable
 
         try
         {
-            //await Db.ValidateAvailabilityAsync(Request);
                          await Db.PostClientRequestAsync(Request);
             var result = await Payment.CreateQrphChargeAsync(Request);
 
