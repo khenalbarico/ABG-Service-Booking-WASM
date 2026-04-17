@@ -20,11 +20,15 @@ public class AppPayment (IApiClient _apiClient, AppGlobalError _globalError)
             throw;
         }
     }
-    public async Task<string> GetPaymentIntentStatusAsync(string paymentIntentId, CancellationToken ct = default)
+
+    public async Task<string> ProcessClientPaymentAsync(
+           string            paymentIntentId,
+           ClientRequest     req,
+           CancellationToken ct = default)
     {
         try
         {
-            var resp = await _apiClient.SubmitAsync<string>("IToolPaymentApi", "GetPaymentIntentStatusAsync", new { paymentIntentId }, ct);
+            var resp = await _apiClient.SubmitAsync<string>("IAppPaymentApi", "ProcessClientPaymentAsync", new { paymentIntentId, req }, ct);
 
             return resp;
         }

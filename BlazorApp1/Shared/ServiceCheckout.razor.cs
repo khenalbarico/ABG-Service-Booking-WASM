@@ -192,15 +192,12 @@ public partial class ServiceCheckout : IDisposable
             {
                 if (qrCountdownSeconds == QrPollingTimeoutSeconds || qrCountdownSeconds % 3 == 0)
                 {
-                    var status = await Payment.GetPaymentIntentStatusAsync(paymentIntentId!);
+                    var status = await Payment.ProcessClientPaymentAsync(paymentIntentId!, Request);
 
                     if (CheckoutPaymentAlgorithms.IsPaymentSuccessful(status))
                     {
                         pollCts?.Cancel();
 
-                        await Db.PatchClientStatusAsync(Request.ClientInformation.ClientBookingId, ClientStatus.Paid);
-                        await Db.PostClientApptSchedAsync(Request);
-                        await Emailer.SendEmailAsync(Request);
                         await OnSchedulesChanged.InvokeAsync();
 
                         ShowSuccessState();
