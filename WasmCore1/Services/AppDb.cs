@@ -4,6 +4,7 @@ using WasmCore1.Models.Client;
 using WasmCore1.Models.Schedules;
 using WasmCore1.Models.Service;
 using WasmTools1.Api;
+using static WasmCore1.Models.Constants;
 
 namespace WasmCore1.Services;
 
@@ -44,6 +45,32 @@ public class AppDb (IApiClient _apiClient, AppGlobalError _globalError)
         try
         {
             await _apiClient.PostAsync("IAppDbOperator", "PostClientRequestAsync", req, ct);
+        }
+        catch (Exception ex)
+        {
+            await _globalError.ShowAsync(ex);
+            throw;
+        }
+    }
+
+    public async Task PatchClientStatusAsync(string bookingId, ClientStatus status, CancellationToken ct = default)
+    {
+        try
+        {
+            await _apiClient.PostAsync("IAppDbOperator", "PatchClientStatusAsync", new { bookingId, status }, ct);
+        }
+        catch (Exception ex)
+        {
+            await _globalError.ShowAsync(ex);
+            throw;
+        }
+    }
+
+    public async Task PostClientApptSchedAsync(ClientRequest req, CancellationToken ct = default)
+    {
+        try
+        {
+            await _apiClient.PostAsync("IAppDbOperator", "PostClientApptSchedAsync", req, ct);
         }
         catch (Exception ex)
         {

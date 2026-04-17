@@ -76,7 +76,7 @@ public partial class ServiceSection
             parsedBranch = branch;
 
         var existingBranch = branchSelections.TryGetValue(cardKey, out var current) ? current : null;
-        var changed = existingBranch != parsedBranch;
+        var changed        = existingBranch != parsedBranch;
 
         branchSelections[cardKey] = parsedBranch;
 
@@ -101,7 +101,7 @@ public partial class ServiceSection
 
     private void SelectDate(string cardKey, DateTime date)
     {
-        SelectedDates[cardKey] = date.Date;
+        SelectedDates[cardKey]  = date.Date;
         timeSelections[cardKey] = "";
     }
 
@@ -221,16 +221,16 @@ public partial class ServiceSection
 
     private void OpenImagePreview(string imageUrl, string title)
     {
-        previewImageUrl = imageUrl;
-        previewTitle = title;
+        previewImageUrl  = imageUrl;
+        previewTitle     = title;
         showImagePreview = true;
     }
 
     private void CloseImagePreview()
     {
         showImagePreview = false;
-        previewImageUrl = "";
-        previewTitle = "";
+        previewImageUrl  = "";
+        previewTitle     = "";
     }
 
     private async Task Book(BaseSvcStructure svc, string cardKey)
@@ -242,7 +242,7 @@ public partial class ServiceSection
         if (string.IsNullOrWhiteSpace(selectedTime))
             return;
 
-        var slotStatus = GetTimeSlotStatus(svc, cardKey, selectedTime);
+        var slotStatus  = GetTimeSlotStatus(svc, cardKey, selectedTime);
         if (slotStatus != TimeSlotStatus.Available)
             return;
 
@@ -253,13 +253,13 @@ public partial class ServiceSection
 
         var data = new ClientService
         {
-            ServiceUid = cardKey,
-            ServiceName = Title,
-            ServiceDesign = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
+            ServiceUid     = cardKey,
+            ServiceName    = Title,
+            ServiceDesign  = designSelections.ContainsKey(cardKey) ? designSelections[cardKey] : "",
             ServiceDetails = svc.Details,
-            ServiceCost = svc.Cost,
-            Branch = selectedBranch.Value,
-            ServiceDate = combinedDate
+            ServiceCost    = svc.Cost,
+            Branch         = selectedBranch.Value,
+            ServiceDate    = combinedDate
         };
 
         await OnBook.InvokeAsync(data);
